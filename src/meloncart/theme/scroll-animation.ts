@@ -3,9 +3,9 @@ import {
   gsap,
   onScrollTriggerDebugChange,
   ScrollTrigger,
-} from '../../mc/core/gsap';
-import { createLogger } from '../../mc/core/logger';
-import type { ColorThemeValues } from '../../mc/core/types';
+} from '../../digerati/core/gsap';
+import { createLogger } from '../../digerati/core/logger';
+import type { ColorThemeValues } from '../../digerati/core/types';
 
 let currentTriggers: ScrollTrigger[] = [];
 let initialized = false;

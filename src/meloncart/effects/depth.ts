@@ -1,6 +1,6 @@
-import { getScrollTriggerDebug, gsap, onScrollTriggerDebugChange } from '../core/gsap';
-import { createLogger } from '../core/logger';
-import type { MCDebugSchema, MCNamespace } from '../core/types';
+import { getScrollTriggerDebug, gsap, onScrollTriggerDebugChange } from '../../digerati/core/gsap';
+import { createLogger } from '../../digerati/core/logger';
+import type { MCDebugSchema, MCNamespace } from '../../digerati/core/types';
 
 const SELECTOR = 'img[mc-depth-reveal]';
 

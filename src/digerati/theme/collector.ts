@@ -1,5 +1,5 @@
-import { createLogger } from '../../mc/core/logger';
-import type { ColorThemesAPI, ColorThemeValues } from '../../mc/core/types';
+import { createLogger } from '../core/logger';
+import type { ColorThemesAPI, ColorThemeValues } from '../core/types';
 
 const DEBUG = false;
 const logger = createLogger('digerati', 'theme', {

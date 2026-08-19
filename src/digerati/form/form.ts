@@ -1,4 +1,4 @@
-import { createLogger } from '../mc/core/logger';
+import { createLogger } from '../core/logger';
 
 const DEBUG = false;
 const logger = createLogger('digerati', 'form', {

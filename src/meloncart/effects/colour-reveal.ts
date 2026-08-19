@@ -1,6 +1,11 @@
-import { getScrollTriggerDebug, gsap, onScrollTriggerDebugChange, SplitText } from '../core/gsap';
-import { createLogger } from '../core/logger';
-import type { MCDebugSchema, MCNamespace } from '../core/types';
+import {
+  getScrollTriggerDebug,
+  gsap,
+  onScrollTriggerDebugChange,
+  SplitText,
+} from '../../digerati/core/gsap';
+import { createLogger } from '../../digerati/core/logger';
+import type { MCDebugSchema, MCNamespace } from '../../digerati/core/types';
 
 const SELECTOR = '[mc-colour-reveal]';
 

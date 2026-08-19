@@ -1,12 +1,12 @@
-import { initMCDebug } from './mc/core/debug';
-import { initMCMotion } from './mc/core/motion';
-import { initMCChalk } from './mc/effects/chalk';
-import { initMCColourReveal } from './mc/effects/colour-reveal';
-import { initMCDepth } from './mc/effects/depth';
-import { initMCIllustration } from './mc/effects/illustration';
-import { initForm } from './site/form';
-import { initPrefillUtility } from './site/prefill';
-import { initTheme } from './site/theme';
+import { initMCDebug } from './digerati/core/debug';
+import { initMCMotion } from './digerati/core/motion';
+import { initForm } from './digerati/form/form';
+import { initMCChalk } from './meloncart/effects/chalk';
+import { initMCColourReveal } from './meloncart/effects/colour-reveal';
+import { initMCDepth } from './meloncart/effects/depth';
+import { initMCIllustration } from './meloncart/effects/illustration';
+import { initPrefillUtility } from './meloncart/forms/prefill';
+import { initTheme } from './meloncart/theme';
 
 initMCMotion();
 initMCDebug();

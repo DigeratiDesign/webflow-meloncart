@@ -3,9 +3,9 @@ import {
   gsap,
   onScrollTriggerDebugChange,
   ScrollTrigger,
-} from '../core/gsap';
-import { createLogger } from '../core/logger';
-import type { MCDebugSchema, MCNamespace } from '../core/types';
+} from '../../digerati/core/gsap';
+import { createLogger } from '../../digerati/core/logger';
+import type { MCDebugSchema, MCNamespace } from '../../digerati/core/types';
 
 const DEFAULT_DURATION = 1;
 const DEFAULT_START = 'top 75%';

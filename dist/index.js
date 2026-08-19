@@ -7017,7 +7017,7 @@
   _SplitText.version = "3.15.0";
   var SplitText = _SplitText;
 
-  // src/mc/core/gsap.ts
+  // src/digerati/core/gsap.ts
   var registered = false;
   var scrollTriggerDebug = false;
   var scrollTriggerDebugListeners = /* @__PURE__ */ new Set();
@@ -7046,7 +7046,7 @@
     };
   };
 
-  // src/mc/core/logger.ts
+  // src/digerati/core/logger.ts
   var resolveDebug = (debug3) => {
     if (typeof debug3 === "function") {
       return debug3();
@@ -7079,7 +7079,7 @@
     };
   };
 
-  // src/mc/core/debug.ts
+  // src/digerati/core/debug.ts
   var CSS = `
     :root{
       --mc-debug-accent:#00ffff;
@@ -7741,7 +7741,7 @@
     logger.info("Generic debugger ready \u2014 press D");
   };
 
-  // src/mc/core/motion.ts
+  // src/digerati/core/motion.ts
   var MEDIA_QUERY = "(prefers-reduced-motion: reduce)";
   var ROOT_ATTRIBUTE = "data-mc-reduced-motion";
   var NATIVE_SELECTOR = "[mc-native-webflow-motion]";
@@ -7862,7 +7862,325 @@
     });
   };
 
-  // src/mc/effects/chalk.ts
+  // src/digerati/form/form.ts
+  var DEBUG = false;
+  var logger3 = createLogger("digerati", "form", {
+    debug: () => DEBUG
+  });
+  var SELECTORS = {
+    form: "form",
+    field: 'input[required], select[required], textarea[required], input[type="email"]',
+    fieldWrapper: '[mc-form="field-wrapper"]'
+  };
+  var CLASSES = {
+    fieldError: "has-error",
+    errorMessage: "form-field-error"
+  };
+  var MESSAGES = {
+    required: "Please complete this field",
+    fullName: "Enter your full name",
+    emailRequired: "Enter your email address",
+    emailInvalid: "Enter a valid email address",
+    streetAddress: "Enter your street address",
+    city: "Enter your city",
+    postalCode: "Enter your postal / ZIP code",
+    country: "Select your country"
+  };
+  var debug = (...args) => {
+    logger3.debug(...args);
+  };
+  var debugWarn = (...args) => {
+    logger3.debug(...args);
+  };
+  var debugError = (...args) => {
+    logger3.error(...args);
+  };
+  var getErrorElement = (field) => {
+    const wrapper = field.closest(SELECTORS.fieldWrapper);
+    if (!wrapper) {
+      debugWarn("getErrorElement(): wrapper not found", field);
+      return null;
+    }
+    const error2 = wrapper.querySelector(`.${CLASSES.errorMessage}`);
+    debug("getErrorElement():", {
+      field,
+      wrapper,
+      error: error2
+    });
+    return error2;
+  };
+  var createErrorId = (field) => {
+    const base = field.id || field.name || `field-${Math.random().toString(36).slice(2, 8)}`;
+    const id = `${base}-error`;
+    debug("createErrorId():", {
+      field,
+      id
+    });
+    return id;
+  };
+  var clearError = (field) => {
+    debug("clearError()", field);
+    field.classList.remove(CLASSES.fieldError);
+    field.removeAttribute("aria-invalid");
+    field.removeAttribute("aria-describedby");
+    const error2 = getErrorElement(field);
+    if (error2) {
+      debug("Removing error element:", error2);
+      error2.remove();
+    }
+  };
+  var showError = (field, message) => {
+    const wrapper = field.closest(SELECTORS.fieldWrapper);
+    debug("showError()", {
+      field,
+      message,
+      wrapper
+    });
+    if (!wrapper) {
+      debugError(
+        "No field wrapper found for field:",
+        field,
+        `Expected ancestor matching ${SELECTORS.fieldWrapper}`
+      );
+      return;
+    }
+    field.classList.add(CLASSES.fieldError);
+    field.setAttribute("aria-invalid", "true");
+    let error2 = getErrorElement(field);
+    if (!error2) {
+      debug("Creating error element for:", field);
+      error2 = document.createElement("div");
+      error2.classList.add(CLASSES.errorMessage);
+      wrapper.appendChild(error2);
+    } else {
+      debug("Reusing existing error element:", error2);
+    }
+    if (!error2.id) {
+      error2.id = createErrorId(field);
+    }
+    field.setAttribute("aria-describedby", error2.id);
+    error2.textContent = message;
+    debug("Error rendered:", {
+      field,
+      error: error2,
+      errorId: error2.id,
+      message
+    });
+  };
+  var getRequiredMessage = (field) => {
+    const type = (field.type || "").toLowerCase();
+    const name = (field.name || "").toLowerCase();
+    debug("getRequiredMessage()", {
+      field,
+      type,
+      name
+    });
+    if (type === "email") {
+      return MESSAGES.emailRequired;
+    }
+    if (field.tagName === "SELECT") {
+      return MESSAGES.country;
+    }
+    if (name.includes("name")) {
+      return MESSAGES.fullName;
+    }
+    if (name.includes("street") || name.includes("address-line1")) {
+      return MESSAGES.streetAddress;
+    }
+    if (name.includes("city")) {
+      return MESSAGES.city;
+    }
+    if (name.includes("postal") || name.includes("postcode") || name.includes("zip")) {
+      return MESSAGES.postalCode;
+    }
+    if (name.includes("country")) {
+      return MESSAGES.country;
+    }
+    return MESSAGES.required;
+  };
+  var validateField = (field) => {
+    debug("validateField()", {
+      field,
+      name: field.name,
+      type: field.type,
+      value: field.value,
+      required: field.required,
+      disabled: field.disabled,
+      willValidate: field.willValidate
+    });
+    if (!field.willValidate) {
+      debugWarn("Field will not validate:", field);
+      clearError(field);
+      return true;
+    }
+    const isValid = field.checkValidity();
+    debug("checkValidity():", {
+      field,
+      name: field.name,
+      isValid,
+      validity: {
+        valueMissing: field.validity.valueMissing,
+        typeMismatch: field.validity.typeMismatch,
+        patternMismatch: field.validity.patternMismatch,
+        tooLong: field.validity.tooLong,
+        tooShort: field.validity.tooShort,
+        rangeUnderflow: field.validity.rangeUnderflow,
+        rangeOverflow: field.validity.rangeOverflow,
+        stepMismatch: field.validity.stepMismatch,
+        badInput: field.validity.badInput,
+        customError: field.validity.customError,
+        valid: field.validity.valid
+      }
+    });
+    if (isValid) {
+      debug("Field valid. Clearing error:", field);
+      clearError(field);
+      return true;
+    }
+    let message = MESSAGES.required;
+    if (field.validity.valueMissing) {
+      message = getRequiredMessage(field);
+    } else if (field.type === "email" && field.validity.typeMismatch) {
+      message = MESSAGES.emailInvalid;
+    }
+    debugWarn("Field invalid:", {
+      field,
+      name: field.name,
+      message
+    });
+    showError(field, message);
+    return false;
+  };
+  var initForms = () => {
+    debug("Script initialised");
+    debug("Document readyState:", document.readyState);
+    const forms = document.querySelectorAll(SELECTORS.form);
+    debug("Forms found:", forms.length, forms);
+    forms.forEach((form, formIndex) => {
+      debug(`Initialising form ${formIndex + 1}`, form);
+      form.setAttribute("novalidate", "");
+      const fields = Array.from(form.querySelectorAll(SELECTORS.field));
+      debug(`Form ${formIndex + 1}: matching fields found:`, fields.length, fields);
+      fields.forEach((field, fieldIndex) => {
+        debug(`Field ${fieldIndex + 1}`, {
+          element: field,
+          tagName: field.tagName,
+          type: field.type,
+          name: field.name,
+          id: field.id,
+          required: field.required,
+          disabled: field.disabled,
+          willValidate: field.willValidate,
+          value: field.value,
+          wrapper: field.closest(SELECTORS.fieldWrapper)
+        });
+      });
+      form.addEventListener(
+        "invalid",
+        (event) => {
+          debug("Native invalid event intercepted:", event.target);
+          event.preventDefault();
+        },
+        true
+      );
+      fields.forEach((field) => {
+        let hasBeenTouched = false;
+        field.addEventListener("blur", () => {
+          const hasValue = String(field.value || "").trim() !== "";
+          debug("Blur:", {
+            field,
+            name: field.name,
+            value: field.value,
+            hasBeenTouched,
+            hasValue
+          });
+          if (hasBeenTouched || hasValue) {
+            validateField(field);
+          }
+          hasBeenTouched = true;
+        });
+        field.addEventListener("input", () => {
+          hasBeenTouched = true;
+          debug("Input:", {
+            field,
+            name: field.name,
+            value: field.value,
+            hasError: field.classList.contains(CLASSES.fieldError)
+          });
+          if (field.classList.contains(CLASSES.fieldError)) {
+            validateField(field);
+          }
+        });
+        field.addEventListener("change", () => {
+          hasBeenTouched = true;
+          debug("Change:", {
+            field,
+            name: field.name,
+            value: field.value,
+            hasError: field.classList.contains(CLASSES.fieldError)
+          });
+          if (field.classList.contains(CLASSES.fieldError)) {
+            validateField(field);
+          }
+        });
+      });
+      form.addEventListener(
+        "submit",
+        (event) => {
+          debug("Submit captured:", form);
+          let firstInvalidField = null;
+          for (const field of fields) {
+            debug("Checking field on submit:", {
+              field,
+              name: field.name,
+              willValidate: field.willValidate,
+              value: field.value
+            });
+            if (!field.willValidate) {
+              debugWarn("Skipping field because willValidate = false:", field);
+              continue;
+            }
+            const isValid = validateField(field);
+            debug("Submit validation result:", {
+              field,
+              name: field.name,
+              isValid
+            });
+            if (!isValid && !firstInvalidField) {
+              firstInvalidField = field;
+            }
+          }
+          if (firstInvalidField !== null) {
+            const invalidField = firstInvalidField;
+            debugWarn("Submission blocked. First invalid field:", invalidField);
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            invalidField.focus({
+              preventScroll: true
+            });
+            invalidField.scrollIntoView({
+              behavior: "smooth",
+              block: "center"
+            });
+            return false;
+          }
+          debug("Form valid. Allowing Webflow submission to continue.");
+          return void 0;
+        },
+        true
+      );
+    });
+  };
+  var initForm = () => {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initForms, { once: true });
+      return;
+    }
+    initForms();
+  };
+
+  // src/meloncart/effects/chalk.ts
   var SVG_NS = "http://www.w3.org/2000/svg";
   var XLINK_NS = "http://www.w3.org/1999/xlink";
   var CHALK_SELECTOR = "[mc-chalk]";
@@ -7880,7 +8198,7 @@
     stagger: 0.12,
     debug: false
   };
-  var logger3 = createLogger("melon", "chalk");
+  var logger4 = createLogger("melon", "chalk");
   var uid = 0;
   var stampTransformCache = /* @__PURE__ */ new Map();
   var chalkInstances = /* @__PURE__ */ new Map();
@@ -7983,7 +8301,7 @@
     if (values.length !== 4 || values.some((value) => !Number.isFinite(value))) {
       throw new Error("[\u{1F348}:chalk] Invalid chalk stamp viewBox.");
     }
-    logger3.info("Stamp loaded:", stampUrl);
+    logger4.info("Stamp loaded:", stampUrl);
     return {
       path: pathData,
       viewBox: {
@@ -8159,7 +8477,7 @@
     const svg = wrapper.querySelector("svg");
     const domNodesBefore = svg ? svg.querySelectorAll("*").length : 0;
     if (!svg) {
-      logger3.warn("No inline SVG found:", wrapper);
+      logger4.warn("No inline SVG found:", wrapper);
       return null;
     }
     const originals = [
@@ -8168,7 +8486,7 @@
       )
     ].filter((element) => !element.closest("defs"));
     if (!originals.length) {
-      logger3.warn("No SVG geometry found:", wrapper);
+      logger4.warn("No SVG geometry found:", wrapper);
       return null;
     }
     wrapper.dataset.mcChalkReady = "1";
@@ -8528,7 +8846,7 @@
       }
     };
     build();
-    logger3.info("Sequence initialised", {
+    logger4.info("Sequence initialised", {
       element: sequenceElement,
       items: instances.length,
       duration: settings.duration,
@@ -8608,7 +8926,7 @@
             generatedElements: instance.generatedElements || 0
           }))
         };
-        logger3.info("DOM impact", mc.chalkStats);
+        logger4.info("DOM impact", mc.chalkStats);
         const chalkAppearanceController = {
           get(key) {
             const first = ensureMC3().chalk?.[0];
@@ -8719,9 +9037,9 @@
           ]
         });
         window.addEventListener("mcChalkStatsChange", () => ensureMC3().debug?.refresh?.());
-        logger3.info(`Applied to ${wrappers.length} element(s).`);
+        logger4.info(`Applied to ${wrappers.length} element(s).`);
       } catch (error2) {
-        logger3.error(error2);
+        logger4.error(error2);
       }
     };
     if (document.readyState === "loading") {
@@ -8737,7 +9055,7 @@
     }
   };
 
-  // src/mc/effects/colour-reveal.ts
+  // src/meloncart/effects/colour-reveal.ts
   var SELECTOR = "[mc-colour-reveal]";
   var DEFAULTS2 = {
     duration: 0.8,
@@ -8746,7 +9064,7 @@
     colour: "#ffffff",
     start: "top bottom"
   };
-  var logger4 = createLogger("melon", "colour-reveal");
+  var logger5 = createLogger("melon", "colour-reveal");
   var ensureMC4 = () => {
     window.MC ||= {};
     return window.MC;
@@ -8873,7 +9191,7 @@
         try {
           this.split.revert();
         } catch (error2) {
-          logger4.warn("SplitText revert failed", error2);
+          logger5.warn("SplitText revert failed", error2);
         }
         this.split = null;
       }
@@ -9111,7 +9429,7 @@
         void instance.init();
       });
       mc.debug?.refresh?.();
-      logger4.info(`Initialised ${components.length} element(s).`);
+      logger5.info(`Initialised ${components.length} element(s).`);
     };
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", () => void init4(), {
@@ -9122,7 +9440,7 @@
     }
   };
 
-  // src/mc/effects/depth.ts
+  // src/meloncart/effects/depth.ts
   var SELECTOR2 = "img[mc-depth-reveal]";
   var DEFAULTS3 = {
     trace: 1.35,
@@ -9143,7 +9461,7 @@
     direction: 1,
     duration: 2850
   };
-  var logger5 = createLogger("melon", "depth");
+  var logger6 = createLogger("melon", "depth");
   var clamp3 = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
   var ease = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   var ensureMC5 = () => {
@@ -9361,7 +9679,7 @@
     async loadEffect() {
       if (this.effectLoaded || this.loadingEffect || motion().reduced) return;
       if (!this.depthSrc) {
-        logger5.warn("Missing mc-depth-map:", this.image);
+        logger6.warn("Missing mc-depth-map:", this.image);
         this.showStaticImage();
         return;
       }
@@ -9389,7 +9707,7 @@
         const imageAspect = sourceImage.naturalWidth / sourceImage.naturalHeight;
         const depthAspect = depthImage.naturalWidth / depthImage.naturalHeight;
         if (Math.abs(imageAspect - depthAspect) > 1e-3) {
-          logger5.warn("Source/depth aspect ratios differ:", {
+          logger6.warn("Source/depth aspect ratios differ:", {
             image: [sourceImage.naturalWidth, sourceImage.naturalHeight],
             depth: [depthImage.naturalWidth, depthImage.naturalHeight],
             element: this.image
@@ -9415,10 +9733,10 @@
         await nextFrame();
         await nextFrame();
         if (!motion().reduced) this.startReveal();
-        logger5.info("Initialised");
+        logger6.info("Initialised");
       } catch (error2) {
         this.loadingEffect = false;
-        logger5.error("Initialisation failed:", error2, this.image);
+        logger6.error("Initialisation failed:", error2, this.image);
         this.showStaticImage();
       }
     }
@@ -10418,7 +10736,7 @@ void main() {
     const initialise = () => {
       const images = [...document.querySelectorAll(SELECTOR2)];
       if (!images.length) {
-        logger5.info("No depth reveal images found");
+        logger6.info("No depth reveal images found");
         return;
       }
       const mc = ensureMC5();
@@ -10515,7 +10833,7 @@ void main() {
           { type: "button", label: "Replay", action: "replay" }
         ]
       });
-      logger5.info(`Found ${images.length} image(s)`);
+      logger6.info(`Found ${images.length} image(s)`);
     };
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", initialise, { once: true });
@@ -10524,12 +10842,12 @@ void main() {
     }
   };
 
-  // src/mc/effects/illustration.ts
+  // src/meloncart/effects/illustration.ts
   var DEFAULT_DURATION = 1;
   var DEFAULT_START = "top 75%";
   var DEFAULT_STAGGER = 0.25;
   var EASE = "power3.out";
-  var logger6 = createLogger("melon", "illustration");
+  var logger7 = createLogger("melon", "illustration");
   var ensureMC6 = () => {
     window.MC ||= {};
     return window.MC;
@@ -10957,7 +11275,7 @@ void main() {
       case "foundation-ownership":
         return createFoundationOwnershipAnimation(element, duration);
       default:
-        logger6.warn(`Unknown illustration: ${type}`, element);
+        logger7.warn(`Unknown illustration: ${type}`, element);
         return null;
     }
   };
@@ -11098,7 +11416,7 @@ void main() {
     };
     rebuild();
     if (settings.debug) {
-      logger6.info("Sequence ready", {
+      logger7.info("Sequence ready", {
         sequence: sectionIndex + 1,
         illustrations: illustrations.map((element) => element.getAttribute("mc-illustration")),
         duration: settings.duration,
@@ -11118,7 +11436,7 @@ void main() {
     });
     const mc = ensureMC6();
     mc.illustrationSequences = sequenceControllers2;
-    logger6.info(`Registered ${sequenceControllers2.length} sequence(s).`);
+    logger7.info(`Registered ${sequenceControllers2.length} sequence(s).`);
     registerDebugSchema3({
       id: "illustration-sequences",
       label: "Illustration Sequence",
@@ -11197,325 +11515,7 @@ void main() {
     }
   };
 
-  // src/site/form.ts
-  var DEBUG = false;
-  var logger7 = createLogger("digerati", "form", {
-    debug: () => DEBUG
-  });
-  var SELECTORS = {
-    form: "form",
-    field: 'input[required], select[required], textarea[required], input[type="email"]',
-    fieldWrapper: '[mc-form="field-wrapper"]'
-  };
-  var CLASSES = {
-    fieldError: "has-error",
-    errorMessage: "form-field-error"
-  };
-  var MESSAGES = {
-    required: "Please complete this field",
-    fullName: "Enter your full name",
-    emailRequired: "Enter your email address",
-    emailInvalid: "Enter a valid email address",
-    streetAddress: "Enter your street address",
-    city: "Enter your city",
-    postalCode: "Enter your postal / ZIP code",
-    country: "Select your country"
-  };
-  var debug = (...args) => {
-    logger7.debug(...args);
-  };
-  var debugWarn = (...args) => {
-    logger7.debug(...args);
-  };
-  var debugError = (...args) => {
-    logger7.error(...args);
-  };
-  var getErrorElement = (field) => {
-    const wrapper = field.closest(SELECTORS.fieldWrapper);
-    if (!wrapper) {
-      debugWarn("getErrorElement(): wrapper not found", field);
-      return null;
-    }
-    const error2 = wrapper.querySelector(`.${CLASSES.errorMessage}`);
-    debug("getErrorElement():", {
-      field,
-      wrapper,
-      error: error2
-    });
-    return error2;
-  };
-  var createErrorId = (field) => {
-    const base = field.id || field.name || `field-${Math.random().toString(36).slice(2, 8)}`;
-    const id = `${base}-error`;
-    debug("createErrorId():", {
-      field,
-      id
-    });
-    return id;
-  };
-  var clearError = (field) => {
-    debug("clearError()", field);
-    field.classList.remove(CLASSES.fieldError);
-    field.removeAttribute("aria-invalid");
-    field.removeAttribute("aria-describedby");
-    const error2 = getErrorElement(field);
-    if (error2) {
-      debug("Removing error element:", error2);
-      error2.remove();
-    }
-  };
-  var showError = (field, message) => {
-    const wrapper = field.closest(SELECTORS.fieldWrapper);
-    debug("showError()", {
-      field,
-      message,
-      wrapper
-    });
-    if (!wrapper) {
-      debugError(
-        "No field wrapper found for field:",
-        field,
-        `Expected ancestor matching ${SELECTORS.fieldWrapper}`
-      );
-      return;
-    }
-    field.classList.add(CLASSES.fieldError);
-    field.setAttribute("aria-invalid", "true");
-    let error2 = getErrorElement(field);
-    if (!error2) {
-      debug("Creating error element for:", field);
-      error2 = document.createElement("div");
-      error2.classList.add(CLASSES.errorMessage);
-      wrapper.appendChild(error2);
-    } else {
-      debug("Reusing existing error element:", error2);
-    }
-    if (!error2.id) {
-      error2.id = createErrorId(field);
-    }
-    field.setAttribute("aria-describedby", error2.id);
-    error2.textContent = message;
-    debug("Error rendered:", {
-      field,
-      error: error2,
-      errorId: error2.id,
-      message
-    });
-  };
-  var getRequiredMessage = (field) => {
-    const type = (field.type || "").toLowerCase();
-    const name = (field.name || "").toLowerCase();
-    debug("getRequiredMessage()", {
-      field,
-      type,
-      name
-    });
-    if (type === "email") {
-      return MESSAGES.emailRequired;
-    }
-    if (field.tagName === "SELECT") {
-      return MESSAGES.country;
-    }
-    if (name.includes("name")) {
-      return MESSAGES.fullName;
-    }
-    if (name.includes("street") || name.includes("address-line1")) {
-      return MESSAGES.streetAddress;
-    }
-    if (name.includes("city")) {
-      return MESSAGES.city;
-    }
-    if (name.includes("postal") || name.includes("postcode") || name.includes("zip")) {
-      return MESSAGES.postalCode;
-    }
-    if (name.includes("country")) {
-      return MESSAGES.country;
-    }
-    return MESSAGES.required;
-  };
-  var validateField = (field) => {
-    debug("validateField()", {
-      field,
-      name: field.name,
-      type: field.type,
-      value: field.value,
-      required: field.required,
-      disabled: field.disabled,
-      willValidate: field.willValidate
-    });
-    if (!field.willValidate) {
-      debugWarn("Field will not validate:", field);
-      clearError(field);
-      return true;
-    }
-    const isValid = field.checkValidity();
-    debug("checkValidity():", {
-      field,
-      name: field.name,
-      isValid,
-      validity: {
-        valueMissing: field.validity.valueMissing,
-        typeMismatch: field.validity.typeMismatch,
-        patternMismatch: field.validity.patternMismatch,
-        tooLong: field.validity.tooLong,
-        tooShort: field.validity.tooShort,
-        rangeUnderflow: field.validity.rangeUnderflow,
-        rangeOverflow: field.validity.rangeOverflow,
-        stepMismatch: field.validity.stepMismatch,
-        badInput: field.validity.badInput,
-        customError: field.validity.customError,
-        valid: field.validity.valid
-      }
-    });
-    if (isValid) {
-      debug("Field valid. Clearing error:", field);
-      clearError(field);
-      return true;
-    }
-    let message = MESSAGES.required;
-    if (field.validity.valueMissing) {
-      message = getRequiredMessage(field);
-    } else if (field.type === "email" && field.validity.typeMismatch) {
-      message = MESSAGES.emailInvalid;
-    }
-    debugWarn("Field invalid:", {
-      field,
-      name: field.name,
-      message
-    });
-    showError(field, message);
-    return false;
-  };
-  var initForms = () => {
-    debug("Script initialised");
-    debug("Document readyState:", document.readyState);
-    const forms = document.querySelectorAll(SELECTORS.form);
-    debug("Forms found:", forms.length, forms);
-    forms.forEach((form, formIndex) => {
-      debug(`Initialising form ${formIndex + 1}`, form);
-      form.setAttribute("novalidate", "");
-      const fields = Array.from(form.querySelectorAll(SELECTORS.field));
-      debug(`Form ${formIndex + 1}: matching fields found:`, fields.length, fields);
-      fields.forEach((field, fieldIndex) => {
-        debug(`Field ${fieldIndex + 1}`, {
-          element: field,
-          tagName: field.tagName,
-          type: field.type,
-          name: field.name,
-          id: field.id,
-          required: field.required,
-          disabled: field.disabled,
-          willValidate: field.willValidate,
-          value: field.value,
-          wrapper: field.closest(SELECTORS.fieldWrapper)
-        });
-      });
-      form.addEventListener(
-        "invalid",
-        (event) => {
-          debug("Native invalid event intercepted:", event.target);
-          event.preventDefault();
-        },
-        true
-      );
-      fields.forEach((field) => {
-        let hasBeenTouched = false;
-        field.addEventListener("blur", () => {
-          const hasValue = String(field.value || "").trim() !== "";
-          debug("Blur:", {
-            field,
-            name: field.name,
-            value: field.value,
-            hasBeenTouched,
-            hasValue
-          });
-          if (hasBeenTouched || hasValue) {
-            validateField(field);
-          }
-          hasBeenTouched = true;
-        });
-        field.addEventListener("input", () => {
-          hasBeenTouched = true;
-          debug("Input:", {
-            field,
-            name: field.name,
-            value: field.value,
-            hasError: field.classList.contains(CLASSES.fieldError)
-          });
-          if (field.classList.contains(CLASSES.fieldError)) {
-            validateField(field);
-          }
-        });
-        field.addEventListener("change", () => {
-          hasBeenTouched = true;
-          debug("Change:", {
-            field,
-            name: field.name,
-            value: field.value,
-            hasError: field.classList.contains(CLASSES.fieldError)
-          });
-          if (field.classList.contains(CLASSES.fieldError)) {
-            validateField(field);
-          }
-        });
-      });
-      form.addEventListener(
-        "submit",
-        (event) => {
-          debug("Submit captured:", form);
-          let firstInvalidField = null;
-          for (const field of fields) {
-            debug("Checking field on submit:", {
-              field,
-              name: field.name,
-              willValidate: field.willValidate,
-              value: field.value
-            });
-            if (!field.willValidate) {
-              debugWarn("Skipping field because willValidate = false:", field);
-              continue;
-            }
-            const isValid = validateField(field);
-            debug("Submit validation result:", {
-              field,
-              name: field.name,
-              isValid
-            });
-            if (!isValid && !firstInvalidField) {
-              firstInvalidField = field;
-            }
-          }
-          if (firstInvalidField !== null) {
-            const invalidField = firstInvalidField;
-            debugWarn("Submission blocked. First invalid field:", invalidField);
-            event.preventDefault();
-            event.stopPropagation();
-            event.stopImmediatePropagation();
-            invalidField.focus({
-              preventScroll: true
-            });
-            invalidField.scrollIntoView({
-              behavior: "smooth",
-              block: "center"
-            });
-            return false;
-          }
-          debug("Form valid. Allowing Webflow submission to continue.");
-          return void 0;
-        },
-        true
-      );
-    });
-  };
-  var initForm = () => {
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", initForms, { once: true });
-      return;
-    }
-    initForms();
-  };
-
-  // src/site/prefill.ts
+  // src/meloncart/forms/prefill.ts
   var DEBUG2 = false;
   var logger8 = createLogger("melon", "prefill", {
     debug: () => DEBUG2
@@ -11622,7 +11622,7 @@ void main() {
     initPrefill();
   };
 
-  // src/site/theme/collector.ts
+  // src/digerati/theme/collector.ts
   var DEBUG3 = false;
   var logger9 = createLogger("digerati", "theme", {
     debug: () => DEBUG3
@@ -11900,7 +11900,7 @@ void main() {
     collectColorThemes();
   };
 
-  // src/site/theme/scroll-animation.ts
+  // src/meloncart/theme/scroll-animation.ts
   var currentTriggers = [];
   var initialized = false;
   var DEBUG4 = false;
@@ -11991,7 +11991,7 @@ void main() {
     });
   };
 
-  // src/site/theme/index.ts
+  // src/meloncart/theme/index.ts
   var initTheme = () => {
     initThemeScrollAnimation();
     initThemeCollector();
