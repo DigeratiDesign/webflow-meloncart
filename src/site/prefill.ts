@@ -1,5 +1,9 @@
-/* eslint-disable no-console */
-const DEBUG = true;
+import { createLogger } from '../mc/core/logger';
+
+const DEBUG = false;
+const logger = createLogger('melon', 'prefill', {
+  debug: () => DEBUG,
+});
 
 const SELECTORS = {
   scope: 'form[mc-prefill="True"], [mc-prefill="True"] form',
@@ -10,13 +14,11 @@ const SELECTORS = {
 type PrefillField = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
 const debug = (...args: unknown[]): void => {
-  if (!DEBUG) return;
-  console.log('[MC Prefill]', ...args);
+  logger.debug(...args);
 };
 
 const debugWarn = (...args: unknown[]): void => {
-  if (!DEBUG) return;
-  console.warn('[MC Prefill]', ...args);
+  logger.debug(...args);
 };
 
 const isReadOnlySupported = (

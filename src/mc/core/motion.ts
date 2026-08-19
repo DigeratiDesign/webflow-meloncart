@@ -1,3 +1,4 @@
+import { createLogger } from './logger';
 import type { MCNamespace, MotionMode } from './types';
 
 const MEDIA_QUERY = '(prefers-reduced-motion: reduce)';
@@ -5,6 +6,7 @@ const ROOT_ATTRIBUTE = 'data-mc-reduced-motion';
 const NATIVE_SELECTOR = '[mc-native-webflow-motion]';
 const STYLE_ID = 'mc-native-webflow-motion-style';
 const VALID_MODES = ['system', 'reduce', 'full'] as const;
+const logger = createLogger('digerati', 'motion');
 
 type MCMotionChangeDetail = {
   mode: MotionMode;
@@ -152,8 +154,7 @@ export const initMCMotion = () => {
     }
   }
 
-  // eslint-disable-next-line no-console
-  console.log('[MC Motion] Ready', {
+  logger.info('Ready', {
     mode: ensureMC().motion?.mode,
     reduced: ensureMC().motion?.reduced,
     nativeTargets: document.querySelectorAll(NATIVE_SELECTOR).length,

@@ -1,5 +1,9 @@
-/* eslint-disable no-console */
-const DEBUG = true;
+import { createLogger } from '../mc/core/logger';
+
+const DEBUG = false;
+const logger = createLogger('digerati', 'form', {
+  debug: () => DEBUG,
+});
 
 const SELECTORS = {
   form: 'form',
@@ -26,18 +30,15 @@ const MESSAGES = {
 type FormField = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
 const debug = (...args: unknown[]): void => {
-  if (!DEBUG) return;
-  console.log('[MC Form]', ...args);
+  logger.debug(...args);
 };
 
 const debugWarn = (...args: unknown[]): void => {
-  if (!DEBUG) return;
-  console.warn('[MC Form]', ...args);
+  logger.debug(...args);
 };
 
 const debugError = (...args: unknown[]): void => {
-  if (!DEBUG) return;
-  console.error('[MC Form]', ...args);
+  logger.error(...args);
 };
 
 const getErrorElement = (field: FormField): HTMLDivElement | null => {

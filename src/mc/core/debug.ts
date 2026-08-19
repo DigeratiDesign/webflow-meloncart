@@ -1,4 +1,5 @@
 import { getScrollTriggerDebug, setScrollTriggerDebug } from './gsap';
+import { createLogger } from './logger';
 import type {
   MCButtonControl,
   MCController,
@@ -89,6 +90,7 @@ const CSS = `
   `;
 
 const BRAND_SPOT_COLOURS = ['#00FF00', '#FF00FF', '#FF6600', '#FFFF00', '#00FFFF'] as const;
+const logger = createLogger('digerati', 'debug');
 
 const ensureMC = (): MCNamespace => {
   window.MC ||= {};
@@ -860,6 +862,5 @@ export const initMCDebug = () => {
 
   queued.forEach(register);
 
-  // eslint-disable-next-line no-console
-  console.log('[MC Debug] Generic debugger ready — press D');
+  logger.info('Generic debugger ready — press D');
 };

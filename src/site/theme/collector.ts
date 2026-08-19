@@ -1,7 +1,10 @@
-/* eslint-disable no-console */
+import { createLogger } from '../../mc/core/logger';
 import type { ColorThemesAPI, ColorThemeValues } from '../../mc/core/types';
 
-const DEBUG = true;
+const DEBUG = false;
+const logger = createLogger('digerati', 'theme', {
+  debug: () => DEBUG,
+});
 
 const STORAGE_KEYS = {
   THEMES: 'colorThemes_data_v3',
@@ -15,19 +18,15 @@ const CLASS_PREFIXES = {
 } as const;
 
 const log = (...args: unknown[]): void => {
-  if (DEBUG) {
-    console.log('[MC Theme]', ...args);
-  }
+  logger.debug(...args);
 };
 
 const warn = (...args: unknown[]): void => {
-  if (DEBUG) {
-    console.warn('[MC Theme]', ...args);
-  }
+  logger.warn(...args);
 };
 
 const error = (...args: unknown[]): void => {
-  console.error('[MC Theme]', ...args);
+  logger.error(...args);
 };
 
 const createColorThemesAPI = (): ColorThemesAPI => ({

@@ -4,6 +4,7 @@ import {
   onScrollTriggerDebugChange,
   ScrollTrigger,
 } from '../core/gsap';
+import { createLogger } from '../core/logger';
 import type { MCDebugSchema, MCNamespace } from '../core/types';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -25,6 +26,7 @@ const DEFAULTS = {
   stagger: 0.12,
   debug: false,
 };
+const logger = createLogger('melon', 'chalk');
 
 type ChalkStamp = {
   path: string;
@@ -207,40 +209,40 @@ const loadStamp = async (): Promise<ChalkStamp> => {
   const stampElement = document.querySelector<HTMLElement>(STAMP_SELECTOR);
 
   if (!stampElement) {
-    throw new Error('[MC Chalk] No element with [mc-chalk-stamp] found.');
+    throw new Error('[🍈:chalk] No element with [mc-chalk-stamp] found.');
   }
 
   const stampUrl = stampElement.getAttribute('mc-chalk-stamp');
 
   if (!stampUrl) {
-    throw new Error('[MC Chalk] [mc-chalk-stamp] has no SVG URL.');
+    throw new Error('[🍈:chalk] [mc-chalk-stamp] has no SVG URL.');
   }
 
   const response = await fetch(stampUrl);
 
   if (!response.ok) {
-    throw new Error(`[MC Chalk] Could not load chalk stamp: ${response.status}`);
+    throw new Error(`[🍈:chalk] Could not load chalk stamp: ${response.status}`);
   }
 
   const source = await response.text();
   const parsed = new DOMParser().parseFromString(source, 'image/svg+xml');
 
   if (parsed.querySelector('parsererror')) {
-    throw new Error('[MC Chalk] Chalk stamp SVG could not be parsed.');
+    throw new Error('[🍈:chalk] Chalk stamp SVG could not be parsed.');
   }
 
   const sourceSvg = parsed.querySelector('svg');
   const sourcePath = parsed.querySelector('path');
 
   if (!sourceSvg || !sourcePath) {
-    throw new Error('[MC Chalk] Chalk stamp SVG does not contain a path.');
+    throw new Error('[🍈:chalk] Chalk stamp SVG does not contain a path.');
   }
 
   const pathData = sourcePath.getAttribute('d');
   const viewBox = sourceSvg.getAttribute('viewBox');
 
   if (!pathData || !viewBox) {
-    throw new Error('[MC Chalk] Chalk stamp SVG is invalid.');
+    throw new Error('[🍈:chalk] Chalk stamp SVG is invalid.');
   }
 
   const values = viewBox
@@ -249,11 +251,10 @@ const loadStamp = async (): Promise<ChalkStamp> => {
     .map(Number);
 
   if (values.length !== 4 || values.some((value) => !Number.isFinite(value))) {
-    throw new Error('[MC Chalk] Invalid chalk stamp viewBox.');
+    throw new Error('[🍈:chalk] Invalid chalk stamp viewBox.');
   }
 
-  // eslint-disable-next-line no-console
-  console.log('[MC Chalk] Stamp loaded:', stampUrl);
+  logger.info('Stamp loaded:', stampUrl);
 
   return {
     path: pathData,
@@ -484,8 +485,7 @@ const applyChalk = (wrapper: HTMLElement, index: number, stamp: ChalkStamp) => {
   const domNodesBefore = svg ? svg.querySelectorAll('*').length : 0;
 
   if (!svg) {
-    // eslint-disable-next-line no-console
-    console.warn('[MC Chalk] No inline SVG found:', wrapper);
+    logger.warn('No inline SVG found:', wrapper);
 
     return null;
   }
@@ -497,8 +497,7 @@ const applyChalk = (wrapper: HTMLElement, index: number, stamp: ChalkStamp) => {
   ].filter((element) => !element.closest('defs'));
 
   if (!originals.length) {
-    // eslint-disable-next-line no-console
-    console.warn('[MC Chalk] No SVG geometry found:', wrapper);
+    logger.warn('No SVG geometry found:', wrapper);
 
     return null;
   }
@@ -954,8 +953,7 @@ const initSequence = (sequenceElement: HTMLElement) => {
 
   build();
 
-  // eslint-disable-next-line no-console
-  console.log('[MC Chalk] Sequence initialised', {
+  logger.info('Sequence initialised', {
     element: sequenceElement,
     items: instances.length,
     duration: settings.duration,
@@ -1058,8 +1056,7 @@ export const initMCChalk = () => {
         })),
       };
 
-      // eslint-disable-next-line no-console
-      console.log('[MC Chalk] DOM impact', mc.chalkStats);
+      logger.info('DOM impact', mc.chalkStats);
 
       const chalkAppearanceController = {
         get(key: string) {
@@ -1176,10 +1173,9 @@ export const initMCChalk = () => {
 
       window.addEventListener('mcChalkStatsChange', () => ensureMC().debug?.refresh?.());
 
-      // eslint-disable-next-line no-console
-      console.log(`[MC Chalk] Applied to ${wrappers.length} element(s).`);
+      logger.info(`Applied to ${wrappers.length} element(s).`);
     } catch (error) {
-      console.error('[MC Chalk]', error);
+      logger.error(error);
     }
   };
 

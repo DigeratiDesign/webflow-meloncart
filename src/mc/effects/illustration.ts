@@ -4,12 +4,14 @@ import {
   onScrollTriggerDebugChange,
   ScrollTrigger,
 } from '../core/gsap';
+import { createLogger } from '../core/logger';
 import type { MCDebugSchema, MCNamespace } from '../core/types';
 
 const DEFAULT_DURATION = 1;
 const DEFAULT_START = 'top 75%';
 const DEFAULT_STAGGER = 0.25;
 const EASE = 'power3.out';
+const logger = createLogger('melon', 'illustration');
 
 type SequenceSettings = {
   duration: number;
@@ -550,8 +552,7 @@ const createIllustrationTimeline = (element: HTMLElement, duration: number) => {
     case 'foundation-ownership':
       return createFoundationOwnershipAnimation(element, duration);
     default:
-      // eslint-disable-next-line no-console
-      console.warn(`[MC Illustration] Unknown illustration: ${type}`, element);
+      logger.warn(`Unknown illustration: ${type}`, element);
 
       return null;
   }
@@ -732,8 +733,7 @@ const createSequenceController = (section: HTMLElement, sectionIndex: number) =>
   rebuild();
 
   if (settings.debug) {
-    // eslint-disable-next-line no-console
-    console.log('[MC Illustration] Sequence ready', {
+    logger.info('Sequence ready', {
       sequence: sectionIndex + 1,
       illustrations: illustrations.map((element) => element.getAttribute('mc-illustration')),
       duration: settings.duration,
@@ -759,8 +759,7 @@ const initIllustrationSequences = () => {
   const mc = ensureMC();
   mc.illustrationSequences = sequenceControllers;
 
-  // eslint-disable-next-line no-console
-  console.log(`[MC Illustration] Registered ${sequenceControllers.length} sequence(s).`);
+  logger.info(`Registered ${sequenceControllers.length} sequence(s).`);
 
   registerDebugSchema({
     id: 'illustration-sequences',

@@ -1,4 +1,5 @@
 import { getScrollTriggerDebug, gsap, onScrollTriggerDebugChange } from '../core/gsap';
+import { createLogger } from '../core/logger';
 import type { MCDebugSchema, MCNamespace } from '../core/types';
 
 const SELECTOR = 'img[mc-depth-reveal]';
@@ -22,6 +23,7 @@ const DEFAULTS = {
   direction: 1,
   duration: 2850,
 };
+const logger = createLogger('melon', 'depth');
 
 type GSAPTween = {
   kill?: () => void;
@@ -338,8 +340,7 @@ class MCDepthReveal {
     if (this.effectLoaded || this.loadingEffect || motion().reduced) return;
 
     if (!this.depthSrc) {
-      // eslint-disable-next-line no-console
-      console.warn('[MC Depth] Missing mc-depth-map:', this.image);
+      logger.warn('Missing mc-depth-map:', this.image);
       this.showStaticImage();
       return;
     }
@@ -375,8 +376,7 @@ class MCDepthReveal {
       const depthAspect = depthImage.naturalWidth / depthImage.naturalHeight;
 
       if (Math.abs(imageAspect - depthAspect) > 0.001) {
-        // eslint-disable-next-line no-console
-        console.warn('[MC Depth] Source/depth aspect ratios differ:', {
+        logger.warn('Source/depth aspect ratios differ:', {
           image: [sourceImage.naturalWidth, sourceImage.naturalHeight],
           depth: [depthImage.naturalWidth, depthImage.naturalHeight],
           element: this.image,
@@ -411,11 +411,10 @@ class MCDepthReveal {
 
       if (!motion().reduced) this.startReveal();
 
-      // eslint-disable-next-line no-console
-      console.log('[MC Depth] Initialised');
+      logger.info('Initialised');
     } catch (error) {
       this.loadingEffect = false;
-      console.error('[MC Depth] Initialisation failed:', error, this.image);
+      logger.error('Initialisation failed:', error, this.image);
       this.showStaticImage();
     }
   }
@@ -1581,8 +1580,7 @@ export const initMCDepth = () => {
     const images = [...document.querySelectorAll<HTMLImageElement>(SELECTOR)];
 
     if (!images.length) {
-      // eslint-disable-next-line no-console
-      console.log('[MC Depth] No depth reveal images found');
+      logger.info('No depth reveal images found');
       return;
     }
 
@@ -1684,8 +1682,7 @@ export const initMCDepth = () => {
       ],
     });
 
-    // eslint-disable-next-line no-console
-    console.log(`[MC Depth] Found ${images.length} image(s)`);
+    logger.info(`Found ${images.length} image(s)`);
   };
 
   if (document.readyState === 'loading') {

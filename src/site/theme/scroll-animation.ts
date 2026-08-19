@@ -1,14 +1,21 @@
-/* eslint-disable no-console */
 import {
   getScrollTriggerDebug,
   gsap,
   onScrollTriggerDebugChange,
   ScrollTrigger,
 } from '../../mc/core/gsap';
+import { createLogger } from '../../mc/core/logger';
 import type { ColorThemeValues } from '../../mc/core/types';
 
 let currentTriggers: ScrollTrigger[] = [];
 let initialized = false;
+const DEBUG = false;
+const themeLogger = createLogger('digerati', 'theme', {
+  debug: () => DEBUG,
+});
+const gsapLogger = createLogger('digerati', 'gsap', {
+  debug: () => DEBUG,
+});
 
 const applyThemeValues = (targets: NodeListOf<Element>, themeValues: ColorThemeValues): void => {
   gsap.to(targets, {
@@ -17,38 +24,38 @@ const applyThemeValues = (targets: NodeListOf<Element>, themeValues: ColorThemeV
     ease: 'power1.out',
     overwrite: 'auto',
     onStart() {
-      console.log('[MC Theme] GSAP started');
+      gsapLogger.debug('started');
     },
     onComplete() {
-      console.log('[MC Theme] GSAP completed');
+      gsapLogger.debug('completed');
     },
   });
 };
 
 const handleColorThemesReady = (): void => {
-  console.log('[MC Theme] colorThemesReady received');
+  themeLogger.debug('colorThemesReady received');
 
   currentTriggers.forEach((trigger) => trigger.kill());
   currentTriggers = [];
 
   if (!window.colorThemes) {
-    console.warn('[MC Theme] colorThemes API not ready');
+    themeLogger.warn('colorThemes API not ready');
     return;
   }
 
   const targets = document.querySelectorAll('[mc-theme="target"]');
 
-  console.log('[MC Theme] Targets found:', targets.length, targets);
+  themeLogger.debug('Targets found:', targets.length, targets);
 
   if (!targets.length) {
-    console.warn('[MC Theme] No [mc-theme="target"] elements found');
+    themeLogger.warn('No [mc-theme="target"] elements found');
 
     return;
   }
 
   const triggers = document.querySelectorAll('[data-animate-theme-to]');
 
-  console.log('[MC Theme] Triggers found:', triggers.length, triggers);
+  themeLogger.debug('Triggers found:', triggers.length, triggers);
 
   triggers.forEach((trigger, index) => {
     const feature = trigger.getAttribute('data-animate-theme-to') || '';
@@ -56,7 +63,7 @@ const handleColorThemesReady = (): void => {
     const icon = trigger.getAttribute('data-animate-icon-to') || '';
     const values = window.colorThemes.getTheme(feature, cta, icon);
 
-    console.log(`[MC Theme] Trigger ${index + 1}`, {
+    themeLogger.debug(`Trigger ${index + 1}`, {
       trigger,
       feature,
       cta,
@@ -70,7 +77,7 @@ const handleColorThemesReady = (): void => {
       end: 'bottom center',
       markers: getScrollTriggerDebug(),
       onToggle({ isActive }) {
-        console.log(`[MC Theme] Trigger ${index + 1} toggle`, {
+        themeLogger.debug(`Trigger ${index + 1} toggle`, {
           isActive,
           feature,
           cta,
@@ -83,10 +90,10 @@ const handleColorThemesReady = (): void => {
 
         const themeValues = window.colorThemes.getTheme(feature, cta, icon);
 
-        console.log('[MC Theme] Applying:', themeValues);
+        gsapLogger.debug('Applying:', themeValues);
 
         if (!Object.keys(themeValues).length) {
-          console.warn('[MC Theme] Theme resolved to an empty object');
+          themeLogger.warn('Theme resolved to an empty object');
 
           return;
         }
@@ -97,7 +104,7 @@ const handleColorThemesReady = (): void => {
 
     currentTriggers.push(scrollTrigger);
 
-    console.log(`[MC Theme] ScrollTrigger ${index + 1} created`);
+    themeLogger.debug(`ScrollTrigger ${index + 1} created`);
   });
 };
 

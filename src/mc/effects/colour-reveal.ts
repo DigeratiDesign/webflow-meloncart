@@ -1,4 +1,5 @@
 import { getScrollTriggerDebug, gsap, onScrollTriggerDebugChange, SplitText } from '../core/gsap';
+import { createLogger } from '../core/logger';
 import type { MCDebugSchema, MCNamespace } from '../core/types';
 
 const SELECTOR = '[mc-colour-reveal]';
@@ -10,6 +11,7 @@ const DEFAULTS = {
   colour: '#ffffff',
   start: 'top bottom',
 };
+const logger = createLogger('melon', 'colour-reveal');
 
 type SplitTextResult = InstanceType<typeof SplitText>;
 type BuildTimelineOptions = {
@@ -198,8 +200,7 @@ class MCColourReveal {
       try {
         this.split.revert();
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.warn('[MC Colour Reveal] SplitText revert failed', error);
+        logger.warn('SplitText revert failed', error);
       }
 
       this.split = null;
@@ -485,8 +486,7 @@ export const initMCColourReveal = () => {
 
     mc.debug?.refresh?.();
 
-    // eslint-disable-next-line no-console
-    console.log(`[MC Colour Reveal] Initialised ${components.length} element(s).`);
+    logger.info(`Initialised ${components.length} element(s).`);
   };
 
   if (document.readyState === 'loading') {

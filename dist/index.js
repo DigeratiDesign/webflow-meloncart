@@ -7046,6 +7046,39 @@
     };
   };
 
+  // src/mc/core/logger.ts
+  var resolveDebug = (debug3) => {
+    if (typeof debug3 === "function") {
+      return debug3();
+    }
+    return debug3 ?? false;
+  };
+  var DOMAIN_PREFIX = {
+    digerati: "\u{1F441}",
+    melon: "\u{1F348}"
+  };
+  var createLogger = (domain, channel, options = {}) => {
+    const prefix = `[${DOMAIN_PREFIX[domain]}:${channel}]`;
+    return {
+      debug: (...args) => {
+        if (resolveDebug(options.debug)) {
+          console.log(prefix, ...args);
+        }
+      },
+      info: (...args) => {
+        if (resolveDebug(options.debug)) {
+          console.info(prefix, ...args);
+        }
+      },
+      warn: (...args) => {
+        console.warn(prefix, ...args);
+      },
+      error: (...args) => {
+        console.error(prefix, ...args);
+      }
+    };
+  };
+
   // src/mc/core/debug.ts
   var CSS = `
     :root{
@@ -7125,6 +7158,7 @@
     .mc-debug-status{margin-bottom:12px;padding:10px;background:rgba(255,255,255,.06);border-radius:6px;color:rgba(255,255,255,.65);white-space:pre-wrap}
   `;
   var BRAND_SPOT_COLOURS = ["#00FF00", "#FF00FF", "#FF6600", "#FFFF00", "#00FFFF"];
+  var logger = createLogger("digerati", "debug");
   var ensureMC = () => {
     window.MC ||= {};
     return window.MC;
@@ -7704,7 +7738,7 @@
       close
     };
     queued.forEach(register);
-    console.log("[MC Debug] Generic debugger ready \u2014 press D");
+    logger.info("Generic debugger ready \u2014 press D");
   };
 
   // src/mc/core/motion.ts
@@ -7713,6 +7747,7 @@
   var NATIVE_SELECTOR = "[mc-native-webflow-motion]";
   var STYLE_ID = "mc-native-webflow-motion-style";
   var VALID_MODES = ["system", "reduce", "full"];
+  var logger2 = createLogger("digerati", "motion");
   var ensureMC2 = () => {
     window.MC ||= {};
     return window.MC;
@@ -7820,7 +7855,7 @@
         media.addListener(onSystemChange);
       }
     }
-    console.log("[MC Motion] Ready", {
+    logger2.info("Ready", {
       mode: ensureMC2().motion?.mode,
       reduced: ensureMC2().motion?.reduced,
       nativeTargets: document.querySelectorAll(NATIVE_SELECTOR).length
@@ -7845,6 +7880,7 @@
     stagger: 0.12,
     debug: false
   };
+  var logger3 = createLogger("melon", "chalk");
   var uid = 0;
   var stampTransformCache = /* @__PURE__ */ new Map();
   var chalkInstances = /* @__PURE__ */ new Map();
@@ -7918,36 +7954,36 @@
   var loadStamp = async () => {
     const stampElement = document.querySelector(STAMP_SELECTOR);
     if (!stampElement) {
-      throw new Error("[MC Chalk] No element with [mc-chalk-stamp] found.");
+      throw new Error("[\u{1F348}:chalk] No element with [mc-chalk-stamp] found.");
     }
     const stampUrl = stampElement.getAttribute("mc-chalk-stamp");
     if (!stampUrl) {
-      throw new Error("[MC Chalk] [mc-chalk-stamp] has no SVG URL.");
+      throw new Error("[\u{1F348}:chalk] [mc-chalk-stamp] has no SVG URL.");
     }
     const response = await fetch(stampUrl);
     if (!response.ok) {
-      throw new Error(`[MC Chalk] Could not load chalk stamp: ${response.status}`);
+      throw new Error(`[\u{1F348}:chalk] Could not load chalk stamp: ${response.status}`);
     }
     const source = await response.text();
     const parsed = new DOMParser().parseFromString(source, "image/svg+xml");
     if (parsed.querySelector("parsererror")) {
-      throw new Error("[MC Chalk] Chalk stamp SVG could not be parsed.");
+      throw new Error("[\u{1F348}:chalk] Chalk stamp SVG could not be parsed.");
     }
     const sourceSvg = parsed.querySelector("svg");
     const sourcePath = parsed.querySelector("path");
     if (!sourceSvg || !sourcePath) {
-      throw new Error("[MC Chalk] Chalk stamp SVG does not contain a path.");
+      throw new Error("[\u{1F348}:chalk] Chalk stamp SVG does not contain a path.");
     }
     const pathData = sourcePath.getAttribute("d");
     const viewBox = sourceSvg.getAttribute("viewBox");
     if (!pathData || !viewBox) {
-      throw new Error("[MC Chalk] Chalk stamp SVG is invalid.");
+      throw new Error("[\u{1F348}:chalk] Chalk stamp SVG is invalid.");
     }
     const values = viewBox.trim().split(/[\s,]+/).map(Number);
     if (values.length !== 4 || values.some((value) => !Number.isFinite(value))) {
-      throw new Error("[MC Chalk] Invalid chalk stamp viewBox.");
+      throw new Error("[\u{1F348}:chalk] Invalid chalk stamp viewBox.");
     }
-    console.log("[MC Chalk] Stamp loaded:", stampUrl);
+    logger3.info("Stamp loaded:", stampUrl);
     return {
       path: pathData,
       viewBox: {
@@ -8123,7 +8159,7 @@
     const svg = wrapper.querySelector("svg");
     const domNodesBefore = svg ? svg.querySelectorAll("*").length : 0;
     if (!svg) {
-      console.warn("[MC Chalk] No inline SVG found:", wrapper);
+      logger3.warn("No inline SVG found:", wrapper);
       return null;
     }
     const originals = [
@@ -8132,7 +8168,7 @@
       )
     ].filter((element) => !element.closest("defs"));
     if (!originals.length) {
-      console.warn("[MC Chalk] No SVG geometry found:", wrapper);
+      logger3.warn("No SVG geometry found:", wrapper);
       return null;
     }
     wrapper.dataset.mcChalkReady = "1";
@@ -8492,7 +8528,7 @@
       }
     };
     build();
-    console.log("[MC Chalk] Sequence initialised", {
+    logger3.info("Sequence initialised", {
       element: sequenceElement,
       items: instances.length,
       duration: settings.duration,
@@ -8572,7 +8608,7 @@
             generatedElements: instance.generatedElements || 0
           }))
         };
-        console.log("[MC Chalk] DOM impact", mc.chalkStats);
+        logger3.info("DOM impact", mc.chalkStats);
         const chalkAppearanceController = {
           get(key) {
             const first = ensureMC3().chalk?.[0];
@@ -8683,9 +8719,9 @@
           ]
         });
         window.addEventListener("mcChalkStatsChange", () => ensureMC3().debug?.refresh?.());
-        console.log(`[MC Chalk] Applied to ${wrappers.length} element(s).`);
+        logger3.info(`Applied to ${wrappers.length} element(s).`);
       } catch (error2) {
-        console.error("[MC Chalk]", error2);
+        logger3.error(error2);
       }
     };
     if (document.readyState === "loading") {
@@ -8710,6 +8746,7 @@
     colour: "#ffffff",
     start: "top bottom"
   };
+  var logger4 = createLogger("melon", "colour-reveal");
   var ensureMC4 = () => {
     window.MC ||= {};
     return window.MC;
@@ -8836,7 +8873,7 @@
         try {
           this.split.revert();
         } catch (error2) {
-          console.warn("[MC Colour Reveal] SplitText revert failed", error2);
+          logger4.warn("SplitText revert failed", error2);
         }
         this.split = null;
       }
@@ -9074,7 +9111,7 @@
         void instance.init();
       });
       mc.debug?.refresh?.();
-      console.log(`[MC Colour Reveal] Initialised ${components.length} element(s).`);
+      logger4.info(`Initialised ${components.length} element(s).`);
     };
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", () => void init4(), {
@@ -9106,6 +9143,7 @@
     direction: 1,
     duration: 2850
   };
+  var logger5 = createLogger("melon", "depth");
   var clamp3 = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
   var ease = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   var ensureMC5 = () => {
@@ -9323,7 +9361,7 @@
     async loadEffect() {
       if (this.effectLoaded || this.loadingEffect || motion().reduced) return;
       if (!this.depthSrc) {
-        console.warn("[MC Depth] Missing mc-depth-map:", this.image);
+        logger5.warn("Missing mc-depth-map:", this.image);
         this.showStaticImage();
         return;
       }
@@ -9351,7 +9389,7 @@
         const imageAspect = sourceImage.naturalWidth / sourceImage.naturalHeight;
         const depthAspect = depthImage.naturalWidth / depthImage.naturalHeight;
         if (Math.abs(imageAspect - depthAspect) > 1e-3) {
-          console.warn("[MC Depth] Source/depth aspect ratios differ:", {
+          logger5.warn("Source/depth aspect ratios differ:", {
             image: [sourceImage.naturalWidth, sourceImage.naturalHeight],
             depth: [depthImage.naturalWidth, depthImage.naturalHeight],
             element: this.image
@@ -9377,10 +9415,10 @@
         await nextFrame();
         await nextFrame();
         if (!motion().reduced) this.startReveal();
-        console.log("[MC Depth] Initialised");
+        logger5.info("Initialised");
       } catch (error2) {
         this.loadingEffect = false;
-        console.error("[MC Depth] Initialisation failed:", error2, this.image);
+        logger5.error("Initialisation failed:", error2, this.image);
         this.showStaticImage();
       }
     }
@@ -10380,7 +10418,7 @@ void main() {
     const initialise = () => {
       const images = [...document.querySelectorAll(SELECTOR2)];
       if (!images.length) {
-        console.log("[MC Depth] No depth reveal images found");
+        logger5.info("No depth reveal images found");
         return;
       }
       const mc = ensureMC5();
@@ -10477,7 +10515,7 @@ void main() {
           { type: "button", label: "Replay", action: "replay" }
         ]
       });
-      console.log(`[MC Depth] Found ${images.length} image(s)`);
+      logger5.info(`Found ${images.length} image(s)`);
     };
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", initialise, { once: true });
@@ -10491,6 +10529,7 @@ void main() {
   var DEFAULT_START = "top 75%";
   var DEFAULT_STAGGER = 0.25;
   var EASE = "power3.out";
+  var logger6 = createLogger("melon", "illustration");
   var ensureMC6 = () => {
     window.MC ||= {};
     return window.MC;
@@ -10918,7 +10957,7 @@ void main() {
       case "foundation-ownership":
         return createFoundationOwnershipAnimation(element, duration);
       default:
-        console.warn(`[MC Illustration] Unknown illustration: ${type}`, element);
+        logger6.warn(`Unknown illustration: ${type}`, element);
         return null;
     }
   };
@@ -11059,7 +11098,7 @@ void main() {
     };
     rebuild();
     if (settings.debug) {
-      console.log("[MC Illustration] Sequence ready", {
+      logger6.info("Sequence ready", {
         sequence: sectionIndex + 1,
         illustrations: illustrations.map((element) => element.getAttribute("mc-illustration")),
         duration: settings.duration,
@@ -11079,7 +11118,7 @@ void main() {
     });
     const mc = ensureMC6();
     mc.illustrationSequences = sequenceControllers2;
-    console.log(`[MC Illustration] Registered ${sequenceControllers2.length} sequence(s).`);
+    logger6.info(`Registered ${sequenceControllers2.length} sequence(s).`);
     registerDebugSchema3({
       id: "illustration-sequences",
       label: "Illustration Sequence",
@@ -11159,7 +11198,10 @@ void main() {
   };
 
   // src/site/form.ts
-  var DEBUG = true;
+  var DEBUG = false;
+  var logger7 = createLogger("digerati", "form", {
+    debug: () => DEBUG
+  });
   var SELECTORS = {
     form: "form",
     field: 'input[required], select[required], textarea[required], input[type="email"]',
@@ -11180,16 +11222,13 @@ void main() {
     country: "Select your country"
   };
   var debug = (...args) => {
-    if (!DEBUG) return;
-    console.log("[MC Form]", ...args);
+    logger7.debug(...args);
   };
   var debugWarn = (...args) => {
-    if (!DEBUG) return;
-    console.warn("[MC Form]", ...args);
+    logger7.debug(...args);
   };
   var debugError = (...args) => {
-    if (!DEBUG) return;
-    console.error("[MC Form]", ...args);
+    logger7.error(...args);
   };
   var getErrorElement = (field) => {
     const wrapper = field.closest(SELECTORS.fieldWrapper);
@@ -11477,19 +11516,20 @@ void main() {
   };
 
   // src/site/prefill.ts
-  var DEBUG2 = true;
+  var DEBUG2 = false;
+  var logger8 = createLogger("melon", "prefill", {
+    debug: () => DEBUG2
+  });
   var SELECTORS2 = {
     scope: 'form[mc-prefill="True"], [mc-prefill="True"] form',
     prefillField: "input, select, textarea",
     editButton: '[mc-billing-form="edit"]'
   };
   var debug2 = (...args) => {
-    if (!DEBUG2) return;
-    console.log("[MC Prefill]", ...args);
+    logger8.debug(...args);
   };
   var debugWarn2 = (...args) => {
-    if (!DEBUG2) return;
-    console.warn("[MC Prefill]", ...args);
+    logger8.debug(...args);
   };
   var isReadOnlySupported = (field) => field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement;
   var setFieldLocked = (field, locked) => {
@@ -11583,7 +11623,10 @@ void main() {
   };
 
   // src/site/theme/collector.ts
-  var DEBUG3 = true;
+  var DEBUG3 = false;
+  var logger9 = createLogger("digerati", "theme", {
+    debug: () => DEBUG3
+  });
   var STORAGE_KEYS = {
     THEMES: "colorThemes_data_v3",
     PUBLISH_DATE: "colorThemes_publishDate_v3"
@@ -11594,17 +11637,13 @@ void main() {
     icon: "ui-theme_icon_"
   };
   var log = (...args) => {
-    if (DEBUG3) {
-      console.log("[MC Theme]", ...args);
-    }
+    logger9.debug(...args);
   };
   var warn = (...args) => {
-    if (DEBUG3) {
-      console.warn("[MC Theme]", ...args);
-    }
+    logger9.warn(...args);
   };
   var error = (...args) => {
-    console.error("[MC Theme]", ...args);
+    logger9.error(...args);
   };
   var createColorThemesAPI = () => ({
     themes: {},
@@ -11864,6 +11903,13 @@ void main() {
   // src/site/theme/scroll-animation.ts
   var currentTriggers = [];
   var initialized = false;
+  var DEBUG4 = false;
+  var themeLogger = createLogger("digerati", "theme", {
+    debug: () => DEBUG4
+  });
+  var gsapLogger = createLogger("digerati", "gsap", {
+    debug: () => DEBUG4
+  });
   var applyThemeValues = (targets, themeValues) => {
     gsapWithCSS.to(targets, {
       ...themeValues,
@@ -11871,35 +11917,35 @@ void main() {
       ease: "power1.out",
       overwrite: "auto",
       onStart() {
-        console.log("[MC Theme] GSAP started");
+        gsapLogger.debug("started");
       },
       onComplete() {
-        console.log("[MC Theme] GSAP completed");
+        gsapLogger.debug("completed");
       }
     });
   };
   var handleColorThemesReady = () => {
-    console.log("[MC Theme] colorThemesReady received");
+    themeLogger.debug("colorThemesReady received");
     currentTriggers.forEach((trigger) => trigger.kill());
     currentTriggers = [];
     if (!window.colorThemes) {
-      console.warn("[MC Theme] colorThemes API not ready");
+      themeLogger.warn("colorThemes API not ready");
       return;
     }
     const targets = document.querySelectorAll('[mc-theme="target"]');
-    console.log("[MC Theme] Targets found:", targets.length, targets);
+    themeLogger.debug("Targets found:", targets.length, targets);
     if (!targets.length) {
-      console.warn('[MC Theme] No [mc-theme="target"] elements found');
+      themeLogger.warn('No [mc-theme="target"] elements found');
       return;
     }
     const triggers = document.querySelectorAll("[data-animate-theme-to]");
-    console.log("[MC Theme] Triggers found:", triggers.length, triggers);
+    themeLogger.debug("Triggers found:", triggers.length, triggers);
     triggers.forEach((trigger, index) => {
       const feature = trigger.getAttribute("data-animate-theme-to") || "";
       const cta = trigger.getAttribute("data-animate-cta-to") || "";
       const icon = trigger.getAttribute("data-animate-icon-to") || "";
       const values = window.colorThemes.getTheme(feature, cta, icon);
-      console.log(`[MC Theme] Trigger ${index + 1}`, {
+      themeLogger.debug(`Trigger ${index + 1}`, {
         trigger,
         feature,
         cta,
@@ -11912,7 +11958,7 @@ void main() {
         end: "bottom center",
         markers: getScrollTriggerDebug(),
         onToggle({ isActive }) {
-          console.log(`[MC Theme] Trigger ${index + 1} toggle`, {
+          themeLogger.debug(`Trigger ${index + 1} toggle`, {
             isActive,
             feature,
             cta,
@@ -11922,16 +11968,16 @@ void main() {
             return;
           }
           const themeValues = window.colorThemes.getTheme(feature, cta, icon);
-          console.log("[MC Theme] Applying:", themeValues);
+          gsapLogger.debug("Applying:", themeValues);
           if (!Object.keys(themeValues).length) {
-            console.warn("[MC Theme] Theme resolved to an empty object");
+            themeLogger.warn("Theme resolved to an empty object");
             return;
           }
           applyThemeValues(targets, themeValues);
         }
       });
       currentTriggers.push(scrollTrigger);
-      console.log(`[MC Theme] ScrollTrigger ${index + 1} created`);
+      themeLogger.debug(`ScrollTrigger ${index + 1} created`);
     });
   };
   var initThemeScrollAnimation = () => {
