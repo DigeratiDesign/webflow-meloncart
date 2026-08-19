@@ -452,6 +452,61 @@ class MCDepthReveal {
     return this.settings[name as keyof DepthSettings];
   }
 
+  syncPointerTracking() {
+    const enabled = this.settings.trackX !== 0 || this.settings.trackY !== 0;
+
+    if (this.pointerTrackingEnabled === enabled) {
+      return;
+    }
+
+    this.pointerTrackingEnabled = enabled;
+
+    if (!this.effectLoaded) {
+      return;
+    }
+
+    if (enabled) {
+      window.addEventListener('pointermove', this.boundPointerMove, { passive: true });
+      return;
+    }
+
+    window.removeEventListener('pointermove', this.boundPointerMove);
+    this.pointer.x = 0;
+    this.pointer.y = 0;
+    this.target.x = 0;
+    this.target.y = 0;
+  }
+
+  syncScrollTracking() {
+    const enabled = this.settings.scrollX !== 0 || this.settings.scrollY !== 0;
+
+    if (this.scrollTrackingEnabled === enabled) {
+      if (enabled && this.effectLoaded) {
+        this.createScrollTracking();
+      }
+
+      return;
+    }
+
+    this.scrollTrackingEnabled = enabled;
+
+    if (!this.effectLoaded) {
+      return;
+    }
+
+    if (enabled) {
+      this.createScrollTracking();
+      this.scrollTrigger?.refresh();
+      return;
+    }
+
+    this.scrollTween?.kill?.();
+    this.scrollTween = null;
+    this.scrollTrigger = null;
+    this.scroll.x = 0;
+    this.scroll.y = 0;
+  }
+
   set(name: string, rawValue: unknown) {
     if (!(name in this.settings)) return;
     const value = Number(rawValue);
@@ -467,8 +522,24 @@ class MCDepthReveal {
       (this.settings as Record<string, number>)[name] = value;
     }
 
-    this.pointerTrackingEnabled = this.settings.trackX !== 0 || this.settings.trackY !== 0;
-    this.scrollTrackingEnabled = this.settings.scrollX !== 0 || this.settings.scrollY !== 0;
+    const attributeNames: Partial<Record<keyof DepthSettings, string>> = {
+      trackX: 'mc-depth-track-x',
+      trackY: 'mc-depth-track-y',
+      scrollX: 'mc-depth-scroll-x',
+      scrollY: 'mc-depth-scroll-y',
+    };
+
+    const attributeName = attributeNames[name as keyof DepthSettings];
+
+    if (attributeName) {
+      this.image.setAttribute(
+        attributeName,
+        String((this.settings as Record<string, number>)[name])
+      );
+    }
+
+    this.syncPointerTracking();
+    this.syncScrollTracking();
     this.autoTrackingEnabled =
       this.settings.autoX !== 0 || this.settings.autoY !== 0 || this.settings.autoZoom !== 0;
 
@@ -1537,6 +1608,42 @@ export const initMCDepth = () => {
       instances: () => ensureMC().depth || [],
       instanceLabel: 'Depth Hero',
       controls: [
+        {
+          type: 'range',
+          key: 'trackX',
+          label: 'Mouse X',
+          min: -150,
+          max: 150,
+          step: 1,
+          suffix: 'px',
+        },
+        {
+          type: 'range',
+          key: 'trackY',
+          label: 'Mouse Y',
+          min: -150,
+          max: 150,
+          step: 1,
+          suffix: 'px',
+        },
+        {
+          type: 'range',
+          key: 'scrollX',
+          label: 'Scroll X',
+          min: -150,
+          max: 150,
+          step: 1,
+          suffix: 'px',
+        },
+        {
+          type: 'range',
+          key: 'scrollY',
+          label: 'Scroll Y',
+          min: -150,
+          max: 150,
+          step: 1,
+          suffix: 'px',
+        },
         {
           type: 'range',
           key: 'autoX',

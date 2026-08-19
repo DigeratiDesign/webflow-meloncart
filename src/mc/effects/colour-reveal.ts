@@ -12,6 +12,11 @@ const DEFAULTS = {
 };
 
 type SplitTextResult = InstanceType<typeof SplitText>;
+type BuildTimelineOptions = {
+  attachScrollTrigger: boolean;
+  paused: boolean;
+  playImmediately: boolean;
+};
 
 type MCColourRevealInstance = MCColourReveal;
 
@@ -126,7 +131,11 @@ class MCColourReveal {
       this.component.setAttribute('mc-colour-reveal-start', this.settings.start);
 
       if (this.ready && !reducedMotionEnabled()) {
-        void this.buildAnimated(true);
+        void this.buildAnimated({
+          attachScrollTrigger: false,
+          paused: true,
+          playImmediately: true,
+        });
       }
 
       return;
@@ -157,7 +166,11 @@ class MCColourReveal {
     }
 
     if (this.ready && !reducedMotionEnabled()) {
-      void this.buildAnimated(true);
+      void this.buildAnimated({
+        attachScrollTrigger: false,
+        paused: true,
+        playImmediately: true,
+      });
     }
   }
 
@@ -193,9 +206,31 @@ class MCColourReveal {
     }
   }
 
-  async buildAnimated(replayImmediately = false) {
+  createGSAPTimeline({
+    attachScrollTrigger,
+    paused,
+  }: Omit<BuildTimelineOptions, 'playImmediately'>): GSAPTimeline {
+    return gsap!.timeline({
+      paused,
+      scrollTrigger: attachScrollTrigger
+        ? {
+            trigger: this.component,
+            start: this.settings.start,
+            end: 'top 80%',
+            markers: getScrollTriggerDebug(),
+            toggleActions: 'none play none reset',
+          }
+        : undefined,
+    });
+  }
+
+  async buildAnimated({
+    attachScrollTrigger,
+    paused,
+    playImmediately,
+  }: BuildTimelineOptions): Promise<GSAPTimeline | null> {
     if (this.initialising) {
-      return;
+      return this.timeline;
     }
 
     this.initialising = true;
@@ -210,7 +245,7 @@ class MCColourReveal {
       this.initialising = false;
       this.showFinal();
 
-      return;
+      return null;
     }
 
     this.component.style.setProperty('--mc-colour-reveal', this.settings.colour);
@@ -223,17 +258,9 @@ class MCColourReveal {
       mask: 'lines',
       linesClass: 'line',
       onSplit: (self) => {
-        const timeline = gsap!.timeline({
-          paused: replayImmediately,
-          scrollTrigger: replayImmediately
-            ? undefined
-            : {
-                trigger: this.component,
-                start: this.settings.start,
-                end: 'top 80%',
-                markers: getScrollTriggerDebug(),
-                toggleActions: 'none play none reset',
-              },
+        const timeline = this.createGSAPTimeline({
+          attachScrollTrigger,
+          paused,
         });
 
         timeline.set(this.component, {
@@ -272,7 +299,7 @@ class MCColourReveal {
 
         this.timeline = timeline;
 
-        if (replayImmediately) {
+        if (playImmediately) {
           timeline.play(0);
         }
 
@@ -282,6 +309,20 @@ class MCColourReveal {
 
     this.ready = true;
     this.initialising = false;
+
+    return this.timeline;
+  }
+
+  /**
+   * Creates a paused colour reveal timeline without its standalone ScrollTrigger.
+   * A parent GSAP timeline can add and own this returned animation.
+   */
+  async createTimeline(): Promise<GSAPTimeline | null> {
+    return this.buildAnimated({
+      attachScrollTrigger: false,
+      paused: true,
+      playImmediately: false,
+    });
   }
 
   async replay() {
@@ -291,7 +332,11 @@ class MCColourReveal {
       return;
     }
 
-    await this.buildAnimated(true);
+    await this.buildAnimated({
+      attachScrollTrigger: false,
+      paused: true,
+      playImmediately: true,
+    });
   }
 
   async motionChanged() {
@@ -301,7 +346,11 @@ class MCColourReveal {
       return;
     }
 
-    await this.buildAnimated(false);
+    await this.buildAnimated({
+      attachScrollTrigger: true,
+      paused: false,
+      playImmediately: false,
+    });
   }
 
   async refreshScrollTriggerDebug() {
@@ -309,7 +358,11 @@ class MCColourReveal {
       return;
     }
 
-    await this.buildAnimated(false);
+    await this.buildAnimated({
+      attachScrollTrigger: true,
+      paused: false,
+      playImmediately: false,
+    });
   }
 
   async init() {
@@ -319,7 +372,11 @@ class MCColourReveal {
       return;
     }
 
-    await this.buildAnimated(false);
+    await this.buildAnimated({
+      attachScrollTrigger: true,
+      paused: false,
+      playImmediately: false,
+    });
   }
 }
 

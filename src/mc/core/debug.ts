@@ -188,6 +188,24 @@ export const initMCDebug = () => {
   let panel: HTMLDivElement | null = null;
   let isOpen = false;
 
+  const syncAccordionButton = () => {
+    if (!panel) {
+      return;
+    }
+
+    const button = panel.querySelector<HTMLButtonElement>('.mc-debug-brand-actions button');
+
+    if (!button) {
+      return;
+    }
+
+    const expanded = areAllSectionsExpanded();
+
+    button.dataset.expanded = String(expanded);
+    button.title = expanded ? 'Collapse all' : 'Expand all';
+    button.setAttribute('aria-label', expanded ? 'Collapse all' : 'Expand all');
+  };
+
   const formatValue = (control: MCRangeControl, value: unknown) => {
     const n = Number(value);
     if (!Number.isFinite(n)) return String(value ?? '');
@@ -662,6 +680,8 @@ export const initMCDebug = () => {
 
   const render = () => {
     if (!panel) return;
+
+    syncAccordionButton();
 
     const content = panel.querySelector('.mc-debug-content');
     if (!content) return;
