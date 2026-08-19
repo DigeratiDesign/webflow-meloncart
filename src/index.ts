@@ -1,7 +1,3 @@
-import { greetUser } from '$utils/greet';
+import { initMCMotion } from './mc/core/motion';
 
-window.Webflow ||= [];
-window.Webflow.push(() => {
-  const name = 'John Doe';
-  greetUser(name);
-});
+initMCMotion();
