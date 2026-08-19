@@ -255,8 +255,10 @@ export const initMCDebug = () => {
         return;
       }
 
-      if (control.action && typeof instance?.[control.action] === 'function') {
-        const action = instance[control.action] as () => void;
+      const actionTarget = instance as Record<string, unknown>;
+
+      if (control.action && typeof actionTarget[control.action] === 'function') {
+        const action = actionTarget[control.action] as () => void;
         action();
       }
     });

@@ -17,7 +17,6 @@ export type MCStat = {
 export type MCController = {
   get?: (key: string) => unknown;
   set?: (key: string, value: unknown) => void;
-  [key: string]: unknown;
   settings?: Record<string, unknown>;
 };
 
