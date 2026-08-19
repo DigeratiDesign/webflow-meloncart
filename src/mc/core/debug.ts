@@ -12,26 +12,39 @@ const CSS = `
     #mc-debug-panel{
       position:fixed;top:16px;right:16px;z-index:2147483647;
       width:340px;max-height:calc(100vh - 32px);overflow-y:auto;
-      padding:16px;color:#fff;background:#2a2722;
+      padding:14px;color:#fff;background:#2a2722;
       border:1px solid rgba(255,255,255,.16);border-radius:12px;
       box-shadow:0 20px 60px rgba(0,0,0,.45);
       font:12px/1.4 'Poppins',Arial,Helvetica,sans-serif;
       -webkit-font-smoothing:antialiased
     }
     #mc-debug-panel *{box-sizing:border-box}
-    .mc-debug-brand{display:flex;align-items:center;margin:-16px -16px 20px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.12)}
-    .mc-debug-logo{display:block;width:172px;max-width:100%;height:auto}
-    .mc-debug-global{margin-bottom:20px;padding:0 0 20px;border-bottom:1px solid rgba(255,255,255,.12)}
+    .mc-debug-brand{display:flex;align-items:center;margin:-14px -14px 16px;padding:10px 14px 12px;border-bottom:1px solid rgba(255,255,255,.12)}
+    .mc-debug-logo{display:block;width:50px;height:auto}
+    .mc-debug-global{margin-bottom:10px;padding:0 0 10px;border-bottom:1px solid rgba(255,255,255,.12)}
     .mc-debug-global-title,.mc-debug-group-title{margin-bottom:9px;color:#00ffff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
-    .mc-debug-motion{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;background:rgba(255,255,255,.055);border-radius:7px}
-    .mc-debug-motion button{appearance:none;border:0;border-radius:5px;padding:7px 6px;background:transparent;color:rgba(255,255,255,.55);font:10px/1 'Poppins',Arial,Helvetica,sans-serif;cursor:pointer}
+    .mc-debug-motion{display:inline-grid;grid-template-columns:repeat(3,minmax(54px,1fr));gap:2px;padding:2px;background:rgba(255,255,255,.055);border-radius:6px}
+    .mc-debug-motion button{appearance:none;border:0;border-radius:4px;padding:5px 6px;background:transparent;color:rgba(255,255,255,.55);font:600 9px/1 'Poppins',Arial,Helvetica,sans-serif;cursor:pointer}
     .mc-debug-motion button:hover{color:#fff;background:rgba(255,255,255,.06)}
     .mc-debug-motion button.is-active{color:#2a2722;background:#00ffff;font-weight:700}
-    .mc-debug-group{margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,.12)}
-    .mc-debug-group:first-of-type{margin-top:0}
-    .mc-debug-group-title{margin-bottom:14px}
-    .mc-debug-section+.mc-debug-section{margin-top:18px;padding-top:18px;border-top:1px solid rgba(255,255,255,.08)}
-    .mc-debug-title{margin-bottom:14px;color:rgba(255,255,255,.9);font-weight:700}
+    .mc-debug-group{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.12)}
+    .mc-debug-group.is-first-group{margin-top:0;padding-top:0;border-top:0}
+    .mc-debug-group-title{margin-bottom:8px}
+    .mc-debug-section+.mc-debug-section{margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)}
+    .mc-debug-section-head{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.04)}
+    .mc-debug-section-head[data-open="true"]{background:rgba(255,255,255,.06)}
+    .mc-debug-disclosure{appearance:none;display:flex;align-items:center;justify-content:space-between;flex:1;min-width:0;padding:0;border:0;background:none;color:inherit;font:inherit;cursor:pointer;text-align:left}
+    .mc-debug-disclosure:hover .mc-debug-title,.mc-debug-disclosure:focus-visible .mc-debug-title{color:#fff}
+    .mc-debug-disclosure:focus-visible,.mc-debug-icon-button:focus-visible{outline:2px solid #00ffff;outline-offset:3px;border-radius:6px}
+    .mc-debug-disclosure-copy{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+    .mc-debug-disclosure-icon{display:flex;align-items:center;justify-content:center;flex:0 0 auto;width:16px;height:16px;color:#00ffff;transition:transform .18s ease}
+    .mc-debug-disclosure[aria-expanded="true"] .mc-debug-disclosure-icon{transform:rotate(90deg)}
+    .mc-debug-title{min-width:0;flex:1;color:rgba(255,255,255,.9);font-weight:700}
+    .mc-debug-section-body[hidden]{display:none}
+    .mc-debug-section-body{padding:6px 0 0}
+    .mc-debug-icon-button{appearance:none;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:22px;height:22px;padding:0;border:0;border-radius:999px;background:transparent;color:#00ffff;cursor:pointer}
+    .mc-debug-icon-button:hover{background:rgba(0,255,255,.14);color:#00ffff}
+    .mc-debug-icon-button svg{display:block;width:13px;height:13px}
     .mc-debug-stats{display:grid;grid-template-columns:1fr auto;gap:5px 12px;margin:-3px 0 16px;padding:10px;background:rgba(255,255,255,.055);border-radius:6px;color:rgba(255,255,255,.64);font-size:10px}
     .mc-debug-stats strong{color:#fff;font-weight:600;font-variant-numeric:tabular-nums}
     .mc-debug-control{display:block;margin-bottom:16px}
@@ -150,6 +163,7 @@ export const initMCDebug = () => {
   const mc = ensureMC();
   const motion = ensureMotionAPI();
   const schemas = new Map<string, MCDebugSchema>();
+  const collapsedState = new Map<string, boolean>();
 
   let panel: HTMLDivElement | null = null;
   let isOpen = false;
@@ -266,6 +280,53 @@ export const initMCDebug = () => {
     return button;
   };
 
+  const isReplayControl = (control: MCButtonControl) =>
+    control.action === 'replay' || control.label.trim().toLowerCase() === 'replay';
+
+  const createReplayButton = (instance: MCController, control?: MCButtonControl) => {
+    if (!control && typeof instance?.replay !== 'function') {
+      return null;
+    }
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'mc-debug-icon-button';
+    button.title = 'Replay';
+    button.setAttribute('aria-label', 'Replay');
+    button.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20 6V11H15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M18.364 15A8 8 0 1 1 20 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `;
+
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (control) {
+        if (typeof control.onClick === 'function') {
+          control.onClick(instance);
+          return;
+        }
+
+        if (
+          control.action &&
+          typeof (instance as Record<string, unknown>)[control.action] === 'function'
+        ) {
+          ((instance as Record<string, unknown>)[control.action] as () => void)();
+          return;
+        }
+      }
+
+      if (typeof instance.replay === 'function') {
+        instance.replay();
+      }
+    });
+
+    return button;
+  };
+
   const createStats = (schema: MCDebugSchema) => {
     if (!Array.isArray(schema.stats) || !schema.stats.length) return null;
 
@@ -295,26 +356,87 @@ export const initMCDebug = () => {
     instance: MCController,
     schema: MCDebugSchema,
     index: number,
-    total: number
+    total: number,
+    defaultOpen: boolean
   ) => {
     const section = document.createElement('div');
     section.className = 'mc-debug-section';
 
-    if (schema.instanceLabel !== false) {
-      const title = document.createElement('div');
-      title.className = 'mc-debug-title';
+    const sectionKey = `${schema.id}:${index}`;
+    const collapsed = collapsedState.has(sectionKey)
+      ? collapsedState.get(sectionKey)!
+      : !defaultOpen;
+    const bodyId = `mc-debug-section-${schema.id}-${index}`;
 
+    let titleText = 'Controls';
+    if (schema.instanceLabel !== false) {
       if (typeof schema.instanceLabel === 'function') {
-        title.textContent = schema.instanceLabel(instance, index, total);
+        titleText = schema.instanceLabel(instance, index, total);
       } else {
         const base = schema.instanceLabel || 'Instance';
-        title.textContent = total > 1 ? `${base} ${index + 1}` : base;
+        titleText = total > 1 ? `${base} ${index + 1}` : base;
       }
-
-      section.appendChild(title);
     }
 
+    const header = document.createElement('div');
+    header.className = 'mc-debug-section-head';
+    header.dataset.open = String(!collapsed);
+
+    const disclosure = document.createElement('button');
+    disclosure.type = 'button';
+    disclosure.className = 'mc-debug-disclosure';
+    disclosure.setAttribute('aria-expanded', String(!collapsed));
+    disclosure.setAttribute('aria-controls', bodyId);
+    const disclosureCopy = document.createElement('span');
+    disclosureCopy.className = 'mc-debug-disclosure-copy';
+
+    const title = document.createElement('span');
+    title.className = 'mc-debug-title';
+    title.textContent = titleText;
+
+    disclosureCopy.appendChild(title);
+
+    const body = document.createElement('div');
+    body.className = 'mc-debug-section-body';
+    body.id = bodyId;
+    body.hidden = collapsed;
+
+    disclosure.addEventListener('click', () => {
+      const nextCollapsed = !body.hidden;
+      body.hidden = nextCollapsed;
+      disclosure.setAttribute('aria-expanded', String(!nextCollapsed));
+      header.dataset.open = String(!nextCollapsed);
+      collapsedState.set(sectionKey, nextCollapsed);
+    });
+
+    const replayControl = (schema.controls || []).find(
+      (control): control is MCButtonControl => control.type === 'button' && isReplayControl(control)
+    );
+    const replayButton = createReplayButton(instance, replayControl);
+
+    const chevron = document.createElement('span');
+    chevron.className = 'mc-debug-disclosure-icon';
+    chevron.setAttribute('aria-hidden', 'true');
+    chevron.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `;
+
+    disclosure.append(disclosureCopy, chevron);
+    header.appendChild(disclosure);
+
+    if (replayButton) {
+      header.appendChild(replayButton);
+    }
+
+    section.appendChild(header);
+
     (schema.controls || []).forEach((control) => {
+      if (control.type === 'button' && isReplayControl(control)) {
+        return;
+      }
+
       let element: HTMLElement | null = null;
 
       if (control.type === 'range') {
@@ -323,36 +445,11 @@ export const initMCDebug = () => {
         element = createButton(instance, control);
       }
 
-      if (element) section.appendChild(element);
+      if (element) body.appendChild(element);
     });
 
+    section.appendChild(body);
     return section;
-  };
-
-  const renderSchema = (content: Element, schema: MCDebugSchema) => {
-    const instances =
-      typeof schema.instances === 'function' ? (schema.instances() || []).filter(Boolean) : [];
-
-    const hasStats = Array.isArray(schema.stats) && schema.stats.length;
-    if (!instances.length && !hasStats) return false;
-
-    const group = document.createElement('div');
-    group.className = 'mc-debug-group';
-
-    const title = document.createElement('div');
-    title.className = 'mc-debug-group-title';
-    title.textContent = schema.label || schema.id;
-    group.appendChild(title);
-
-    const stats = createStats(schema);
-    if (stats) group.appendChild(stats);
-
-    instances.forEach((instance, index) => {
-      group.appendChild(createSection(instance, schema, index, instances.length));
-    });
-
-    content.appendChild(group);
-    return true;
   };
 
   const motionControl = () => {
@@ -400,8 +497,37 @@ export const initMCDebug = () => {
     content.appendChild(motionControl());
 
     let rendered = false;
+    let sectionCount = 0;
     schemas.forEach((schema) => {
-      rendered = renderSchema(content, schema) || rendered;
+      const instances =
+        typeof schema.instances === 'function' ? (schema.instances() || []).filter(Boolean) : [];
+
+      const hasStats = Array.isArray(schema.stats) && schema.stats.length;
+      if (!instances.length && !hasStats) return;
+
+      const group = document.createElement('div');
+      group.className = 'mc-debug-group';
+      if (!rendered) {
+        group.classList.add('is-first-group');
+      }
+
+      const title = document.createElement('div');
+      title.className = 'mc-debug-group-title';
+      title.textContent = schema.label || schema.id;
+      group.appendChild(title);
+
+      const stats = createStats(schema);
+      if (stats) group.appendChild(stats);
+
+      instances.forEach((instance, index) => {
+        group.appendChild(
+          createSection(instance, schema, index, instances.length, sectionCount === 0)
+        );
+        sectionCount += 1;
+      });
+
+      content.appendChild(group);
+      rendered = true;
     });
 
     if (!rendered) {
@@ -423,16 +549,7 @@ export const initMCDebug = () => {
     panel.id = 'mc-debug-panel';
     panel.innerHTML = `
       <div class="mc-debug-brand">
-        <svg class="mc-debug-logo" viewBox="0 0 258 71" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Digerati">
-          <path d="M247.18 34.3362V59.389H241.049V34.3362H247.18Z" fill="#00FFFF"/>
-          <path d="M237.972 34.3362V39.2253H231.302V59.389H225.171V39.2253H218.501V34.3362H237.972Z" fill="#00FFFF"/>
-          <path d="M213.578 54.9637H204.184L202.678 59.389H196.259L205.367 34.3362H212.467L221.574 59.389H215.084L213.578 54.9637ZM211.992 50.2759L208.881 41.0811L205.797 50.2759" fill="#00FFFF"/>
-          <path d="M188.953 56.228L183.786 45.6134V59.389H177.655V34.3362H187.946C189.93 34.3362 191.615 34.6811 193.001 35.3711C194.412 36.0611 195.464 37.0127 196.157 38.2261C196.85 39.4157 197.197 40.748 197.197 42.2231C197.197 43.8886 196.719 45.3755 195.762 46.6841C194.83 47.9926 193.444 48.9205 191.603 49.4677L197.412 59.389H194.021C191.862 59.389 189.894 58.1612 188.953 56.228ZM183.786 45.6134H187.587C188.711 45.6134 189.548 45.3399 190.097 44.7926C190.671 44.2454 190.958 43.4722 190.958 42.4729C190.958 41.5213 190.671 40.7718 190.097 40.2246C189.548 39.6774 188.711 39.4038 187.587 39.4038H183.786V45.6134Z" fill="#00FFFF"/>
-          <path d="M164.387 39.2253V44.293H172.598V49.0038H164.387V54.4998H173.674V59.389H158.256V34.3362H173.674V39.2253H164.387Z" fill="#00FFFF"/>
-          <path d="M147.652 42.259C147.198 41.4263 146.541 40.7958 145.68 40.3675C144.843 39.9155 143.851 39.6895 142.704 39.6895C140.72 39.6895 139.13 40.3438 137.935 41.6523C136.74 42.937 136.142 44.662 136.142 46.8269C136.142 49.1348 136.763 50.943 138.006 52.2516C139.274 53.5363 141.006 54.1787 143.206 54.1787C144.712 54.1787 145.979 53.798 147.007 53.0366C148.059 52.2754 148.823 51.1809 149.302 49.7534H146.038C143.543 49.7534 141.521 47.7402 141.521 45.2568L154.859 45.2568V50.9311C154.405 52.4538 153.628 53.8694 152.529 55.1779C151.453 56.4865 150.078 57.5452 148.405 58.3542C146.732 59.163 144.843 59.5676 142.74 59.5676C140.253 59.5676 138.031 59.0322 136.07 57.9616C134.134 56.8671 132.616 55.3563 131.516 53.4292C130.441 51.5022 129.903 49.3014 129.903 46.8269C129.903 44.3526 130.441 42.1519 131.516 40.2248C132.616 38.2739 134.134 36.7631 136.07 35.6924C138.006 34.598 140.218 34.0508 142.704 34.0508C145.716 34.0508 148.25 34.7765 150.306 36.2278C152.385 37.6791 153.76 39.6895 154.429 42.259H147.652Z" fill="#00FFFF"/>
-          <path d="M126.499 34.3362V59.389H120.368V34.3362H126.499Z" fill="#00FFFF"/>
-          <path d="M103.746 34.3362C106.399 34.3362 108.718 34.8596 110.702 35.9064C112.686 36.9532 114.216 38.4284 115.292 40.3317C116.391 42.2112 116.941 44.3882 116.941 46.8625C116.941 49.3131 116.391 51.49 115.292 53.3933C114.216 55.2968 112.674 56.7719 110.666 57.8186C108.682 58.8655 106.375 59.389 103.746 59.389H94.3152V34.3362H103.746ZM103.351 54.1072C105.67 54.1072 107.475 53.4766 108.766 52.2157C110.056 50.9548 110.702 49.1704 110.702 46.8625C110.702 44.5547 110.056 42.7584 108.766 41.4737C107.475 40.1889 105.67 39.5465 103.351 39.5465H100.447V54.1072H103.351Z" fill="#00FFFF"/>
-          <path d="M254.399 59.6007C256.388 59.6007 258 57.996 258 56.0165C258 54.0371 256.388 52.4324 254.399 52.4324C252.41 52.4324 250.798 54.0371 250.798 56.0165C250.798 57.996 252.41 59.6007 254.399 59.6007Z" fill="white"/>
+        <svg class="mc-debug-logo" viewBox="0 0 83 71" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Digerati eye">
           <path d="M75.0347 71L70.1372 66.7991C68.5397 65.4288 66.5009 64.675 64.3919 64.675H3.66905L9.78491 62.544C11.7729 61.8513 13.4453 60.472 14.4984 58.6566L44.7876 6.44199L43.638 12.7097C43.2632 14.7533 43.6304 16.863 44.674 18.662L75.0347 71ZM41.1864 0L0 71H82.3729L41.1864 0Z" fill="#00FFFF"/>
           <path d="M41.1864 50.5709C43.1753 50.5709 44.7876 48.9662 44.7876 46.9868C44.7876 45.0073 43.1753 43.4026 41.1864 43.4026C39.1976 43.4026 37.5853 45.0073 37.5853 46.9868C37.5853 48.9662 39.1976 50.5709 41.1864 50.5709Z" fill="#00FFFF"/>
           <path d="M41.1864 58.2798C30.0578 58.2798 23.6153 48.9754 23.3464 48.5795L24.2635 46.8092L23.3464 45.039C23.6153 44.6431 30.0578 35.3387 41.1864 35.3387C52.3151 35.3387 58.7576 44.6431 59.0264 45.039L58.1094 46.8092L59.0264 48.5795C58.7576 48.9754 52.3151 58.2798 41.1864 58.2798ZM24.2635 46.8097C26.2639 48.8589 36.0107 51.9549 41.1864 51.9549C46.3594 51.9549 56.1057 48.8618 58.1094 46.8092C56.1057 44.7567 46.3594 41.6636 41.1864 41.6636C36.0131 41.6636 26.2669 44.7571 24.2635 46.8097Z" fill="white"/>
