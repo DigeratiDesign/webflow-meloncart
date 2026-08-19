@@ -769,6 +769,12 @@ const initIllustrationSequences = () => {
     instanceLabel: 'Sequence',
     controls: [
       {
+        type: 'text',
+        key: 'start',
+        placeholder: 'GSAP Start',
+        event: 'change',
+      },
+      {
         type: 'range',
         key: 'duration',
         label: 'Duration',
@@ -788,13 +794,6 @@ const initIllustrationSequences = () => {
         step: 0.05,
         suffix: 's',
         decimals: 2,
-        event: 'change',
-      },
-      {
-        type: 'text',
-        key: 'start',
-        label: 'Start',
-        placeholder: DEFAULT_START,
         event: 'change',
       },
       {

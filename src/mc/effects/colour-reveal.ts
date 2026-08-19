@@ -342,6 +342,12 @@ export const initMCColourReveal = () => {
     instanceLabel: (_instance, index, total) => (total > 1 ? `Heading ${index + 1}` : 'Heading'),
     controls: [
       {
+        type: 'text',
+        key: 'start',
+        placeholder: 'GSAP Start',
+        event: 'change',
+      },
+      {
         type: 'range',
         key: 'duration',
         label: 'Reveal Duration',
@@ -369,13 +375,6 @@ export const initMCColourReveal = () => {
         max: 2,
         step: 0.05,
         suffix: 's',
-        event: 'change',
-      },
-      {
-        type: 'text',
-        key: 'start',
-        label: 'Start',
-        placeholder: DEFAULTS.start,
         event: 'change',
       },
       {

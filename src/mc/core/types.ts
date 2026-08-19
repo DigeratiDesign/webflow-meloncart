@@ -37,7 +37,7 @@ export type MCRangeControl = {
 export type MCTextControl = {
   type: 'text';
   key: string;
-  label: string;
+  label?: string;
   placeholder?: string;
   event?: 'change';
 };

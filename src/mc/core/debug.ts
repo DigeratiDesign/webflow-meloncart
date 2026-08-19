@@ -13,7 +13,8 @@ import type {
 const CSS = `
     #mc-debug-panel{
       position:fixed;top:16px;right:16px;z-index:2147483647;
-      width:340px;max-height:calc(100vh - 32px);overflow-y:auto;
+      display:flex;flex-direction:column;
+      width:340px;max-height:calc(100vh - 32px);
       padding:14px;color:#fff;background:#2a2722;
       border:1px solid rgba(255,255,255,.16);border-radius:12px;
       box-shadow:0 20px 60px rgba(0,0,0,.45);
@@ -21,16 +22,26 @@ const CSS = `
       -webkit-font-smoothing:antialiased
     }
     #mc-debug-panel *{box-sizing:border-box}
-    .mc-debug-brand{display:flex;align-items:center;margin:-14px -14px 16px;padding:10px 14px 12px;border-bottom:1px solid rgba(255,255,255,.12)}
+    .mc-debug-brand{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-14px -14px 16px;padding:10px 14px 12px;border-bottom:1px solid rgba(255,255,255,.12)}
     .mc-debug-logo{display:block;width:50px;height:auto}
+    .mc-debug-content{flex:1 1 auto;min-height:0;overflow-y:auto;padding-right:2px}
     .mc-debug-global{margin-bottom:10px;padding:0 0 10px;border-bottom:1px solid rgba(255,255,255,.12)}
     .mc-debug-global-title,.mc-debug-group-title{margin-bottom:9px;color:#00ffff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+    .mc-debug-global-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end}
+    .mc-debug-global-block{min-width:0}
+    .mc-debug-global-block.is-align-right{text-align:right}
     .mc-debug-segmented{display:inline-grid;gap:2px;padding:2px;background:rgba(255,255,255,.055);border-radius:6px}
     .mc-debug-segmented.is-three-up{grid-template-columns:repeat(3,minmax(42px,1fr))}
     .mc-debug-segmented.is-two-up{grid-template-columns:repeat(2,minmax(42px,1fr))}
     .mc-debug-segmented button{appearance:none;border:0;border-radius:4px;padding:5px 6px;background:transparent;color:rgba(255,255,255,.55);font:600 9px/1 'Poppins',Arial,Helvetica,sans-serif;cursor:pointer}
     .mc-debug-segmented button:hover{color:#fff;background:rgba(255,255,255,.06)}
     .mc-debug-segmented button.is-active{color:#2a2722;background:#00ffff;font-weight:700}
+    .mc-debug-global-icon{appearance:none;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:22px;height:22px;padding:0;border:1px solid rgba(0,255,255,.5);border-radius:999px;background:transparent;color:#00ffff;cursor:pointer}
+    .mc-debug-global-icon:hover{background:rgba(0,255,255,.14);border-color:#00ffff;color:#00ffff}
+    .mc-debug-global-icon:focus-visible{outline:2px solid #00ffff;outline-offset:3px}
+    .mc-debug-global-icon svg{display:block;width:13px;height:13px}
+    .mc-debug-global-icon .mc-debug-disclosure-icon{width:16px;height:16px;transition:transform .18s ease}
+    .mc-debug-global-icon[data-expanded="true"] .mc-debug-disclosure-icon{transform:rotate(90deg)}
     .mc-debug-group{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.12)}
     .mc-debug-group.is-first-group{margin-top:0;padding-top:0;border-top:0}
     .mc-debug-group-title{margin-bottom:8px}
@@ -45,7 +56,7 @@ const CSS = `
     .mc-debug-disclosure[aria-expanded="true"] .mc-debug-disclosure-icon{transform:rotate(90deg)}
     .mc-debug-title{min-width:0;flex:1;color:rgba(255,255,255,.9);font-weight:700}
     .mc-debug-section-body[hidden]{display:none}
-    .mc-debug-section-body{padding:6px 0 0}
+    .mc-debug-section-body{padding:6px 10px 0}
     .mc-debug-icon-button{appearance:none;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:22px;height:22px;padding:0;border:0;border-radius:999px;background:transparent;color:#00ffff;cursor:pointer}
     .mc-debug-icon-button:hover{background:rgba(0,255,255,.14);color:#00ffff}
     .mc-debug-icon-button svg{display:block;width:13px;height:13px}
@@ -53,6 +64,7 @@ const CSS = `
     .mc-debug-stats strong{color:#fff;font-weight:600;font-variant-numeric:tabular-nums}
     .mc-debug-control{display:block;margin-bottom:16px}
     .mc-debug-control:last-child{margin-bottom:0}
+    .mc-debug-section-body>.mc-debug-control:first-child{margin-top:6px}
     .mc-debug-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:7px}
     .mc-debug-label{color:rgba(255,255,255,.82)}
     .mc-debug-value{color:#00ffff;font-variant-numeric:tabular-nums}
@@ -294,17 +306,11 @@ export const initMCDebug = () => {
     const wrap = document.createElement('label');
     wrap.className = 'mc-debug-control';
 
-    const row = document.createElement('div');
-    row.className = 'mc-debug-row';
-
-    const label = document.createElement('span');
-    label.className = 'mc-debug-label';
-    label.textContent = control.label;
-
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'mc-debug-text';
     input.value = current == null ? '' : String(current);
+    input.setAttribute('aria-label', control.label || control.placeholder || control.key);
 
     if (control.placeholder) {
       input.placeholder = control.placeholder;
@@ -324,8 +330,19 @@ export const initMCDebug = () => {
       input.addEventListener('change', commit);
     }
 
-    row.appendChild(label);
-    wrap.append(row, input);
+    if (control.label) {
+      const row = document.createElement('div');
+      row.className = 'mc-debug-row';
+
+      const label = document.createElement('span');
+      label.className = 'mc-debug-label';
+      label.textContent = control.label;
+
+      row.appendChild(label);
+      wrap.append(row, input);
+    } else {
+      wrap.appendChild(input);
+    }
 
     return wrap;
   };
@@ -504,19 +521,11 @@ export const initMCDebug = () => {
     return section;
   };
 
-  const createSegmentedControl = (
-    titleText: string,
+  const createSegmentedButtons = (
     options: Array<{ value: string; label: string }>,
     activeValue: string,
     onSelect: (value: string, button: HTMLButtonElement, control: HTMLDivElement) => void
   ) => {
-    const wrap = document.createElement('div');
-    wrap.className = 'mc-debug-global';
-
-    const title = document.createElement('div');
-    title.className = 'mc-debug-global-title';
-    title.textContent = titleText;
-
     const control = document.createElement('div');
     control.className = `mc-debug-segmented ${options.length === 2 ? 'is-two-up' : 'is-three-up'}`;
 
@@ -534,40 +543,122 @@ export const initMCDebug = () => {
       control.appendChild(button);
     });
 
-    wrap.append(title, control);
+    return control;
+  };
+
+  const motionControl = () => {
+    const wrap = document.createElement('div');
+    wrap.className = 'mc-debug-global';
+
+    const grid = document.createElement('div');
+    grid.className = 'mc-debug-global-grid';
+
+    const motionBlock = document.createElement('div');
+    motionBlock.className = 'mc-debug-global-block';
+
+    const motionTitle = document.createElement('div');
+    motionTitle.className = 'mc-debug-global-title';
+    motionTitle.textContent = 'Reduce Motion';
+
+    motionBlock.append(
+      motionTitle,
+      createSegmentedButtons(
+        [
+          { value: 'system', label: 'System' },
+          { value: 'reduce', label: 'On' },
+          { value: 'full', label: 'Off' },
+        ],
+        motion.mode,
+        (mode, button, control) => {
+          motion.setMode(mode);
+          control.querySelectorAll('button').forEach((el) => el.classList.remove('is-active'));
+          button.classList.add('is-active');
+        }
+      )
+    );
+
+    const debugBlock = document.createElement('div');
+    debugBlock.className = 'mc-debug-global-block is-align-right';
+
+    const debugTitle = document.createElement('div');
+    debugTitle.className = 'mc-debug-global-title';
+    debugTitle.textContent = 'GSAP Debug';
+
+    debugBlock.append(
+      debugTitle,
+      createSegmentedButtons(
+        [
+          { value: 'on', label: 'On' },
+          { value: 'off', label: 'Off' },
+        ],
+        getScrollTriggerDebug() ? 'on' : 'off',
+        (value, button, control) => {
+          setScrollTriggerDebug(value === 'on');
+          control.querySelectorAll('button').forEach((el) => el.classList.remove('is-active'));
+          button.classList.add('is-active');
+        }
+      )
+    );
+
+    grid.append(motionBlock, debugBlock);
+    wrap.appendChild(grid);
     return wrap;
   };
 
-  const motionControl = () =>
-    createSegmentedControl(
-      'Reduce Motion',
-      [
-        { value: 'system', label: 'System' },
-        { value: 'reduce', label: 'On' },
-        { value: 'full', label: 'Off' },
-      ],
-      motion.mode,
-      (mode, button, control) => {
-        motion.setMode(mode);
-        control.querySelectorAll('button').forEach((el) => el.classList.remove('is-active'));
-        button.classList.add('is-active');
-      }
-    );
+  const getSectionKeys = () => {
+    const keys: string[] = [];
 
-  const scrollTriggerDebugControl = () =>
-    createSegmentedControl(
-      'ScrollTrigger Debug',
-      [
-        { value: 'on', label: 'On' },
-        { value: 'off', label: 'Off' },
-      ],
-      getScrollTriggerDebug() ? 'on' : 'off',
-      (value, button, control) => {
-        setScrollTriggerDebug(value === 'on');
-        control.querySelectorAll('button').forEach((el) => el.classList.remove('is-active'));
-        button.classList.add('is-active');
-      }
-    );
+    schemas.forEach((schema) => {
+      const instances =
+        typeof schema.instances === 'function' ? (schema.instances() || []).filter(Boolean) : [];
+
+      instances.forEach((_instance, index) => {
+        keys.push(`${schema.id}:${index}`);
+      });
+    });
+
+    return keys;
+  };
+
+  const areAllSectionsExpanded = () => {
+    const keys = getSectionKeys();
+
+    if (!keys.length) {
+      return false;
+    }
+
+    return keys.every((key) => collapsedState.get(key) === false);
+  };
+
+  const setAllSectionsCollapsed = (collapsed: boolean) => {
+    getSectionKeys().forEach((key) => {
+      collapsedState.set(key, collapsed);
+    });
+  };
+
+  const accordionControl = () => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'mc-debug-global-icon';
+    button.dataset.expanded = String(areAllSectionsExpanded());
+    button.title = areAllSectionsExpanded() ? 'Collapse all' : 'Expand all';
+    button.setAttribute('aria-label', areAllSectionsExpanded() ? 'Collapse all' : 'Expand all');
+    button.innerHTML = `
+      <span class="mc-debug-disclosure-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+    `;
+
+    button.addEventListener('click', () => {
+      const expand = !areAllSectionsExpanded();
+      setAllSectionsCollapsed(!expand);
+      render();
+    });
+
+    return button;
+  };
 
   const render = () => {
     if (!panel) return;
@@ -577,8 +668,6 @@ export const initMCDebug = () => {
 
     content.innerHTML = '';
     content.appendChild(motionControl());
-    content.appendChild(scrollTriggerDebugControl());
-
     let rendered = false;
     let sectionCount = 0;
     schemas.forEach((schema) => {
@@ -637,19 +726,21 @@ export const initMCDebug = () => {
           <path d="M41.1864 50.5709C43.1753 50.5709 44.7876 48.9662 44.7876 46.9868C44.7876 45.0073 43.1753 43.4026 41.1864 43.4026C39.1976 43.4026 37.5853 45.0073 37.5853 46.9868C37.5853 48.9662 39.1976 50.5709 41.1864 50.5709Z" fill="#00FFFF"/>
           <path d="M41.1864 58.2798C30.0578 58.2798 23.6153 48.9754 23.3464 48.5795L24.2635 46.8092L23.3464 45.039C23.6153 44.6431 30.0578 35.3387 41.1864 35.3387C52.3151 35.3387 58.7576 44.6431 59.0264 45.039L58.1094 46.8092L59.0264 48.5795C58.7576 48.9754 52.3151 58.2798 41.1864 58.2798ZM24.2635 46.8097C26.2639 48.8589 36.0107 51.9549 41.1864 51.9549C46.3594 51.9549 56.1057 48.8618 58.1094 46.8092C56.1057 44.7567 46.3594 41.6636 41.1864 41.6636C36.0131 41.6636 26.2669 44.7571 24.2635 46.8097Z" fill="white"/>
         </svg>
+        <div class="mc-debug-brand-actions"></div>
       </div>
       <div class="mc-debug-content"></div>
     `;
 
     panel.style.display = 'none';
     document.body.appendChild(panel);
+    panel.querySelector('.mc-debug-brand-actions')?.appendChild(accordionControl());
   };
 
   const open = () => {
     createPanel();
     isOpen = true;
     if (panel) {
-      panel.style.display = 'block';
+      panel.style.display = 'flex';
     }
     render();
   };

@@ -1139,6 +1139,12 @@ export const initMCChalk = () => {
         instanceLabel: 'Sequence',
         controls: [
           {
+            type: 'text',
+            key: 'start',
+            placeholder: 'GSAP Start',
+            event: 'change',
+          },
+          {
             type: 'range',
             key: 'duration',
             label: 'Duration',
@@ -1158,13 +1164,6 @@ export const initMCChalk = () => {
             step: 0.01,
             suffix: 's',
             decimals: 2,
-            event: 'change',
-          },
-          {
-            type: 'text',
-            key: 'start',
-            label: 'Start',
-            placeholder: DEFAULTS.start,
             event: 'change',
           },
           {
