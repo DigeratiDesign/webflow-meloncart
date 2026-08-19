@@ -1,34 +1,16 @@
+import type { MCNamespace, MotionMode } from './types';
+
 const MEDIA_QUERY = '(prefers-reduced-motion: reduce)';
 const ROOT_ATTRIBUTE = 'data-mc-reduced-motion';
 const NATIVE_SELECTOR = '[mc-native-webflow-motion]';
 const STYLE_ID = 'mc-native-webflow-motion-style';
 const VALID_MODES = ['system', 'reduce', 'full'] as const;
 
-type MotionMode = (typeof VALID_MODES)[number];
-
 type MCMotionChangeDetail = {
   mode: MotionMode;
   reduced: boolean;
   systemReduced: boolean;
 };
-
-type MCMotionAPI = {
-  mode: MotionMode;
-  readonly systemReduced: boolean;
-  readonly reduced: boolean;
-  setMode: (mode: string) => void;
-  refresh: () => void;
-};
-
-type MCNamespace = {
-  motion?: MCMotionAPI;
-};
-
-declare global {
-  interface Window {
-    MC: MCNamespace;
-  }
-}
 
 const ensureMC = (): MCNamespace => {
   window.MC ||= {};
