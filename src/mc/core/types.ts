@@ -34,6 +34,14 @@ export type MCRangeControl = {
   format?: (value: number) => string;
 };
 
+export type MCTextControl = {
+  type: 'text';
+  key: string;
+  label: string;
+  placeholder?: string;
+  event?: 'change';
+};
+
 export type MCButtonControl = {
   type: 'button';
   label: string;
@@ -46,7 +54,7 @@ export type MCDebugSchema = {
   label?: string;
   instances?: () => MCController[];
   stats?: MCStat[];
-  controls?: Array<MCRangeControl | MCButtonControl>;
+  controls?: Array<MCRangeControl | MCTextControl | MCButtonControl>;
   instanceLabel?:
     | string
     | false

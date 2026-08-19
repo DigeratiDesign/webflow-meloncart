@@ -1,3 +1,4 @@
+import { getScrollTriggerDebug, setScrollTriggerDebug } from './gsap';
 import type {
   MCButtonControl,
   MCController,
@@ -5,6 +6,7 @@ import type {
   MCMotionAPI,
   MCNamespace,
   MCRangeControl,
+  MCTextControl,
   MotionMode,
 } from './types';
 
@@ -23,10 +25,12 @@ const CSS = `
     .mc-debug-logo{display:block;width:50px;height:auto}
     .mc-debug-global{margin-bottom:10px;padding:0 0 10px;border-bottom:1px solid rgba(255,255,255,.12)}
     .mc-debug-global-title,.mc-debug-group-title{margin-bottom:9px;color:#00ffff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
-    .mc-debug-motion{display:inline-grid;grid-template-columns:repeat(3,minmax(54px,1fr));gap:2px;padding:2px;background:rgba(255,255,255,.055);border-radius:6px}
-    .mc-debug-motion button{appearance:none;border:0;border-radius:4px;padding:5px 6px;background:transparent;color:rgba(255,255,255,.55);font:600 9px/1 'Poppins',Arial,Helvetica,sans-serif;cursor:pointer}
-    .mc-debug-motion button:hover{color:#fff;background:rgba(255,255,255,.06)}
-    .mc-debug-motion button.is-active{color:#2a2722;background:#00ffff;font-weight:700}
+    .mc-debug-segmented{display:inline-grid;gap:2px;padding:2px;background:rgba(255,255,255,.055);border-radius:6px}
+    .mc-debug-segmented.is-three-up{grid-template-columns:repeat(3,minmax(42px,1fr))}
+    .mc-debug-segmented.is-two-up{grid-template-columns:repeat(2,minmax(42px,1fr))}
+    .mc-debug-segmented button{appearance:none;border:0;border-radius:4px;padding:5px 6px;background:transparent;color:rgba(255,255,255,.55);font:600 9px/1 'Poppins',Arial,Helvetica,sans-serif;cursor:pointer}
+    .mc-debug-segmented button:hover{color:#fff;background:rgba(255,255,255,.06)}
+    .mc-debug-segmented button.is-active{color:#2a2722;background:#00ffff;font-weight:700}
     .mc-debug-group{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.12)}
     .mc-debug-group.is-first-group{margin-top:0;padding-top:0;border-top:0}
     .mc-debug-group-title{margin-bottom:8px}
@@ -58,6 +62,10 @@ const CSS = `
     .mc-debug-control input[type=range]::-moz-range-track{height:4px;border-radius:999px;background:rgba(255,255,255,.14)}
     .mc-debug-control input[type=range]::-moz-range-progress{height:4px;border-radius:999px;background:#00ffff}
     .mc-debug-control input[type=range]::-moz-range-thumb{width:14px;height:14px;border:2px solid #2a2722;border-radius:50%;background:#00ffff}
+    .mc-debug-text{appearance:none;display:block;width:100%;padding:8px 10px;border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(255,255,255,.04);color:#fff;font:500 11px/1.3 'Poppins',Arial,Helvetica,sans-serif}
+    .mc-debug-text::placeholder{color:rgba(255,255,255,.35)}
+    .mc-debug-text:hover{border-color:rgba(255,255,255,.22)}
+    .mc-debug-text:focus-visible{outline:2px solid #00ffff;outline-offset:2px;border-color:#00ffff}
     .mc-debug-button{appearance:none;width:100%;margin-top:14px;padding:9px 12px;border:1px solid #00ffff;border-radius:6px;background:transparent;color:#00ffff;font:600 10px/1 'Poppins',Arial,Helvetica,sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
     .mc-debug-button:hover{background:#00ffff;color:#2a2722}
     .mc-debug-button:active{transform:translateY(1px)}
@@ -280,6 +288,48 @@ export const initMCDebug = () => {
     return button;
   };
 
+  const createText = (instance: MCController, schema: MCDebugSchema, control: MCTextControl) => {
+    const current = read(instance, schema, control.key);
+
+    const wrap = document.createElement('label');
+    wrap.className = 'mc-debug-control';
+
+    const row = document.createElement('div');
+    row.className = 'mc-debug-row';
+
+    const label = document.createElement('span');
+    label.className = 'mc-debug-label';
+    label.textContent = control.label;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'mc-debug-text';
+    input.value = current == null ? '' : String(current);
+
+    if (control.placeholder) {
+      input.placeholder = control.placeholder;
+    }
+
+    const commit = () => {
+      write(instance, schema, control.key, input.value);
+    };
+
+    input.addEventListener('input', () => {
+      if (control.event !== 'change') {
+        commit();
+      }
+    });
+
+    if (control.event === 'change') {
+      input.addEventListener('change', commit);
+    }
+
+    row.appendChild(label);
+    wrap.append(row, input);
+
+    return wrap;
+  };
+
   const isReplayControl = (control: MCButtonControl) =>
     control.action === 'replay' || control.label.trim().toLowerCase() === 'replay';
 
@@ -441,6 +491,8 @@ export const initMCDebug = () => {
 
       if (control.type === 'range') {
         element = createRange(instance, schema, control);
+      } else if (control.type === 'text') {
+        element = createText(instance, schema, control);
       } else if (control.type === 'button') {
         element = createButton(instance, control);
       }
@@ -452,32 +504,31 @@ export const initMCDebug = () => {
     return section;
   };
 
-  const motionControl = () => {
+  const createSegmentedControl = (
+    titleText: string,
+    options: Array<{ value: string; label: string }>,
+    activeValue: string,
+    onSelect: (value: string, button: HTMLButtonElement, control: HTMLDivElement) => void
+  ) => {
     const wrap = document.createElement('div');
     wrap.className = 'mc-debug-global';
 
     const title = document.createElement('div');
     title.className = 'mc-debug-global-title';
-    title.textContent = 'Reduce Motion';
+    title.textContent = titleText;
 
     const control = document.createElement('div');
-    control.className = 'mc-debug-motion';
+    control.className = `mc-debug-segmented ${options.length === 2 ? 'is-two-up' : 'is-three-up'}`;
 
-    [
-      ['system', 'System'],
-      ['reduce', 'On'],
-      ['full', 'Off'],
-    ].forEach(([mode, label]) => {
+    options.forEach(({ value, label }) => {
       const button = document.createElement('button');
       button.type = 'button';
       button.textContent = label;
 
-      if (motion.mode === mode) button.classList.add('is-active');
+      if (activeValue === value) button.classList.add('is-active');
 
       button.addEventListener('click', () => {
-        motion.setMode(mode);
-        control.querySelectorAll('button').forEach((el) => el.classList.remove('is-active'));
-        button.classList.add('is-active');
+        onSelect(value, button, control);
       });
 
       control.appendChild(button);
@@ -487,6 +538,37 @@ export const initMCDebug = () => {
     return wrap;
   };
 
+  const motionControl = () =>
+    createSegmentedControl(
+      'Reduce Motion',
+      [
+        { value: 'system', label: 'System' },
+        { value: 'reduce', label: 'On' },
+        { value: 'full', label: 'Off' },
+      ],
+      motion.mode,
+      (mode, button, control) => {
+        motion.setMode(mode);
+        control.querySelectorAll('button').forEach((el) => el.classList.remove('is-active'));
+        button.classList.add('is-active');
+      }
+    );
+
+  const scrollTriggerDebugControl = () =>
+    createSegmentedControl(
+      'ScrollTrigger Debug',
+      [
+        { value: 'on', label: 'On' },
+        { value: 'off', label: 'Off' },
+      ],
+      getScrollTriggerDebug() ? 'on' : 'off',
+      (value, button, control) => {
+        setScrollTriggerDebug(value === 'on');
+        control.querySelectorAll('button').forEach((el) => el.classList.remove('is-active'));
+        button.classList.add('is-active');
+      }
+    );
+
   const render = () => {
     if (!panel) return;
 
@@ -495,6 +577,7 @@ export const initMCDebug = () => {
 
     content.innerHTML = '';
     content.appendChild(motionControl());
+    content.appendChild(scrollTriggerDebugControl());
 
     let rendered = false;
     let sectionCount = 0;

@@ -3,517 +3,6 @@
   // bin/live-reload.js
   new EventSource(`${"http://localhost:3000"}/esbuild`).addEventListener("change", () => location.reload());
 
-  // src/mc/core/debug.ts
-  var CSS = `
-    #mc-debug-panel{
-      position:fixed;top:16px;right:16px;z-index:2147483647;
-      width:340px;max-height:calc(100vh - 32px);overflow-y:auto;
-      padding:16px;color:#fff;background:#2a2722;
-      border:1px solid rgba(255,255,255,.16);border-radius:12px;
-      box-shadow:0 20px 60px rgba(0,0,0,.45);
-      font:12px/1.4 'Poppins',Arial,Helvetica,sans-serif;
-      -webkit-font-smoothing:antialiased
-    }
-    #mc-debug-panel *{box-sizing:border-box}
-    .mc-debug-brand{display:flex;align-items:center;margin:-16px -16px 20px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.12)}
-    .mc-debug-logo{display:block;width:172px;max-width:100%;height:auto}
-    .mc-debug-global{margin-bottom:20px;padding:0 0 20px;border-bottom:1px solid rgba(255,255,255,.12)}
-    .mc-debug-global-title,.mc-debug-group-title{margin-bottom:9px;color:#00ffff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
-    .mc-debug-motion{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;background:rgba(255,255,255,.055);border-radius:7px}
-    .mc-debug-motion button{appearance:none;border:0;border-radius:5px;padding:7px 6px;background:transparent;color:rgba(255,255,255,.55);font:10px/1 'Poppins',Arial,Helvetica,sans-serif;cursor:pointer}
-    .mc-debug-motion button:hover{color:#fff;background:rgba(255,255,255,.06)}
-    .mc-debug-motion button.is-active{color:#2a2722;background:#00ffff;font-weight:700}
-    .mc-debug-group{margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,.12)}
-    .mc-debug-group:first-of-type{margin-top:0}
-    .mc-debug-group-title{margin-bottom:14px}
-    .mc-debug-section+.mc-debug-section{margin-top:18px;padding-top:18px;border-top:1px solid rgba(255,255,255,.08)}
-    .mc-debug-title{margin-bottom:14px;color:rgba(255,255,255,.9);font-weight:700}
-    .mc-debug-stats{display:grid;grid-template-columns:1fr auto;gap:5px 12px;margin:-3px 0 16px;padding:10px;background:rgba(255,255,255,.055);border-radius:6px;color:rgba(255,255,255,.64);font-size:10px}
-    .mc-debug-stats strong{color:#fff;font-weight:600;font-variant-numeric:tabular-nums}
-    .mc-debug-control{display:block;margin-bottom:16px}
-    .mc-debug-control:last-child{margin-bottom:0}
-    .mc-debug-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:7px}
-    .mc-debug-label{color:rgba(255,255,255,.82)}
-    .mc-debug-value{color:#00ffff;font-variant-numeric:tabular-nums}
-    .mc-debug-control input[type=range]{--mc-range-progress:50%;-webkit-appearance:none;appearance:none;display:block;width:100%;height:16px;margin:0;background:transparent;cursor:pointer}
-    .mc-debug-control input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:999px;background:linear-gradient(to right,#00ffff 0%,#00ffff var(--mc-range-progress),rgba(255,255,255,.14) var(--mc-range-progress),rgba(255,255,255,.14) 100%)}
-    .mc-debug-control input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;margin-top:-5px;border:2px solid #2a2722;border-radius:50%;background:#00ffff;box-shadow:0 0 0 1px #00ffff}
-    .mc-debug-control input[type=range]::-moz-range-track{height:4px;border-radius:999px;background:rgba(255,255,255,.14)}
-    .mc-debug-control input[type=range]::-moz-range-progress{height:4px;border-radius:999px;background:#00ffff}
-    .mc-debug-control input[type=range]::-moz-range-thumb{width:14px;height:14px;border:2px solid #2a2722;border-radius:50%;background:#00ffff}
-    .mc-debug-button{appearance:none;width:100%;margin-top:14px;padding:9px 12px;border:1px solid #00ffff;border-radius:6px;background:transparent;color:#00ffff;font:600 10px/1 'Poppins',Arial,Helvetica,sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
-    .mc-debug-button:hover{background:#00ffff;color:#2a2722}
-    .mc-debug-button:active{transform:translateY(1px)}
-    .mc-debug-status{margin-bottom:12px;padding:10px;background:rgba(255,255,255,.06);border-radius:6px;color:rgba(255,255,255,.65);white-space:pre-wrap}
-  `;
-  var ensureMC = () => {
-    window.MC ||= {};
-    return window.MC;
-  };
-  var ensureMotionAPI = () => {
-    const mc = ensureMC();
-    if (mc.motion) {
-      return mc.motion;
-    }
-    const mediaQuery = "(prefers-reduced-motion: reduce)";
-    const rootAttribute = "data-mc-reduced-motion";
-    const applyState2 = () => {
-      document.documentElement.setAttribute(rootAttribute, mc.motion?.reduced ? "true" : "false");
-    };
-    mc.motion = {
-      mode: "system",
-      get systemReduced() {
-        return !!window.matchMedia?.(mediaQuery).matches;
-      },
-      get reduced() {
-        if (this.mode === "reduce") {
-          return true;
-        }
-        if (this.mode === "full") {
-          return false;
-        }
-        return this.systemReduced;
-      },
-      setMode(mode) {
-        if (!["system", "reduce", "full"].includes(mode)) {
-          return;
-        }
-        this.mode = mode;
-        applyState2();
-        window.dispatchEvent(
-          new CustomEvent("mcMotionPreferenceChange", {
-            detail: {
-              mode: this.mode,
-              reduced: this.reduced,
-              systemReduced: this.systemReduced
-            }
-          })
-        );
-      },
-      refresh() {
-        applyState2();
-        window.dispatchEvent(
-          new CustomEvent("mcMotionPreferenceChange", {
-            detail: {
-              mode: this.mode,
-              reduced: this.reduced,
-              systemReduced: this.systemReduced
-            }
-          })
-        );
-      }
-    };
-    applyState2();
-    const media = window.matchMedia?.(mediaQuery);
-    if (media) {
-      const systemChanged = () => {
-        if (ensureMC().motion?.mode === "system") {
-          ensureMC().motion?.refresh();
-        }
-      };
-      if (typeof media.addEventListener === "function") {
-        media.addEventListener("change", systemChanged);
-      } else if (typeof media.addListener === "function") {
-        media.addListener(systemChanged);
-      }
-    }
-    return mc.motion;
-  };
-  var initMCDebug = () => {
-    const mc = ensureMC();
-    const motion2 = ensureMotionAPI();
-    const schemas = /* @__PURE__ */ new Map();
-    let panel = null;
-    let isOpen = false;
-    const formatValue = (control, value) => {
-      const n = Number(value);
-      if (!Number.isFinite(n)) return String(value ?? "");
-      if (typeof control.format === "function") {
-        return control.format(n);
-      }
-      const decimals = Number.isInteger(control.decimals) ? control.decimals : Number.isInteger(Number(control.step)) && Number(control.step) >= 1 ? 0 : String(control.step ?? "").split(".")[1]?.length ?? 1;
-      return `${n.toFixed(decimals)}${control.suffix || ""}`;
-    };
-    const read = (instance, schema, key) => {
-      if (typeof schema.get === "function") return schema.get(instance, key);
-      if (typeof instance?.get === "function") return instance.get(key);
-      if (instance?.settings && key in instance.settings) return instance.settings[key];
-    };
-    const write = (instance, schema, key, value) => {
-      if (typeof schema.set === "function") {
-        schema.set(instance, key, value);
-        return;
-      }
-      if (typeof instance?.set === "function") {
-        instance.set(key, value);
-      }
-    };
-    const createRange = (instance, schema, control) => {
-      const current = read(instance, schema, control.key);
-      if (current == null || !Number.isFinite(Number(current))) return null;
-      const wrap3 = document.createElement("label");
-      wrap3.className = "mc-debug-control";
-      const row = document.createElement("div");
-      row.className = "mc-debug-row";
-      const label = document.createElement("span");
-      label.className = "mc-debug-label";
-      label.textContent = control.label;
-      const display = document.createElement("span");
-      display.className = "mc-debug-value";
-      display.textContent = formatValue(control, current);
-      const input = document.createElement("input");
-      input.type = "range";
-      input.min = String(control.min);
-      input.max = String(control.max);
-      input.step = String(control.step);
-      input.value = String(current);
-      const updateProgress = () => {
-        const min = Number(input.min);
-        const max = Number(input.max);
-        const val = Number(input.value);
-        const pct = max === min ? 0 : (val - min) / (max - min) * 100;
-        input.style.setProperty("--mc-range-progress", `${Math.max(0, Math.min(100, pct))}%`);
-      };
-      updateProgress();
-      input.addEventListener("input", () => {
-        updateProgress();
-        display.textContent = formatValue(control, input.value);
-        if (control.event !== "change") {
-          write(instance, schema, control.key, Number(input.value));
-        }
-      });
-      if (control.event === "change") {
-        input.addEventListener("change", () => {
-          write(instance, schema, control.key, Number(input.value));
-        });
-      }
-      row.append(label, display);
-      wrap3.append(row, input);
-      return wrap3;
-    };
-    const createButton = (instance, control) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "mc-debug-button";
-      button.textContent = control.label;
-      button.addEventListener("click", () => {
-        if (typeof control.onClick === "function") {
-          control.onClick(instance);
-          return;
-        }
-        const actionTarget = instance;
-        if (control.action && typeof actionTarget[control.action] === "function") {
-          const action = actionTarget[control.action];
-          action();
-        }
-      });
-      return button;
-    };
-    const createStats = (schema) => {
-      if (!Array.isArray(schema.stats) || !schema.stats.length) return null;
-      const block = document.createElement("div");
-      block.className = "mc-debug-stats";
-      schema.stats.forEach((stat) => {
-        const label = document.createElement("span");
-        label.textContent = stat.label;
-        const value = document.createElement("strong");
-        const raw = typeof stat.value === "function" ? stat.value() : stat.value;
-        value.textContent = typeof stat.format === "function" ? stat.format(raw) : Number.isFinite(Number(raw)) ? Math.round(Number(raw)).toLocaleString() : String(raw ?? "");
-        block.append(label, value);
-      });
-      return block;
-    };
-    const createSection = (instance, schema, index, total) => {
-      const section = document.createElement("div");
-      section.className = "mc-debug-section";
-      if (schema.instanceLabel !== false) {
-        const title = document.createElement("div");
-        title.className = "mc-debug-title";
-        if (typeof schema.instanceLabel === "function") {
-          title.textContent = schema.instanceLabel(instance, index, total);
-        } else {
-          const base = schema.instanceLabel || "Instance";
-          title.textContent = total > 1 ? `${base} ${index + 1}` : base;
-        }
-        section.appendChild(title);
-      }
-      (schema.controls || []).forEach((control) => {
-        let element = null;
-        if (control.type === "range") {
-          element = createRange(instance, schema, control);
-        } else if (control.type === "button") {
-          element = createButton(instance, control);
-        }
-        if (element) section.appendChild(element);
-      });
-      return section;
-    };
-    const renderSchema = (content, schema) => {
-      const instances = typeof schema.instances === "function" ? (schema.instances() || []).filter(Boolean) : [];
-      const hasStats = Array.isArray(schema.stats) && schema.stats.length;
-      if (!instances.length && !hasStats) return false;
-      const group = document.createElement("div");
-      group.className = "mc-debug-group";
-      const title = document.createElement("div");
-      title.className = "mc-debug-group-title";
-      title.textContent = schema.label || schema.id;
-      group.appendChild(title);
-      const stats = createStats(schema);
-      if (stats) group.appendChild(stats);
-      instances.forEach((instance, index) => {
-        group.appendChild(createSection(instance, schema, index, instances.length));
-      });
-      content.appendChild(group);
-      return true;
-    };
-    const motionControl = () => {
-      const wrap3 = document.createElement("div");
-      wrap3.className = "mc-debug-global";
-      const title = document.createElement("div");
-      title.className = "mc-debug-global-title";
-      title.textContent = "Reduce Motion";
-      const control = document.createElement("div");
-      control.className = "mc-debug-motion";
-      [
-        ["system", "System"],
-        ["reduce", "On"],
-        ["full", "Off"]
-      ].forEach(([mode, label]) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.textContent = label;
-        if (motion2.mode === mode) button.classList.add("is-active");
-        button.addEventListener("click", () => {
-          motion2.setMode(mode);
-          control.querySelectorAll("button").forEach((el) => el.classList.remove("is-active"));
-          button.classList.add("is-active");
-        });
-        control.appendChild(button);
-      });
-      wrap3.append(title, control);
-      return wrap3;
-    };
-    const render3 = () => {
-      if (!panel) return;
-      const content = panel.querySelector(".mc-debug-content");
-      if (!content) return;
-      content.innerHTML = "";
-      content.appendChild(motionControl());
-      let rendered = false;
-      schemas.forEach((schema) => {
-        rendered = renderSchema(content, schema) || rendered;
-      });
-      if (!rendered) {
-        const status = document.createElement("div");
-        status.className = "mc-debug-status";
-        status.textContent = "No MC effects registered.";
-        content.appendChild(status);
-      }
-    };
-    const createPanel = () => {
-      if (panel) return;
-      const style = document.createElement("style");
-      style.textContent = CSS;
-      document.head.appendChild(style);
-      panel = document.createElement("div");
-      panel.id = "mc-debug-panel";
-      panel.innerHTML = `
-      <div class="mc-debug-brand">
-        <svg class="mc-debug-logo" viewBox="0 0 258 71" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Digerati">
-          <path d="M247.18 34.3362V59.389H241.049V34.3362H247.18Z" fill="#00FFFF"/>
-          <path d="M237.972 34.3362V39.2253H231.302V59.389H225.171V39.2253H218.501V34.3362H237.972Z" fill="#00FFFF"/>
-          <path d="M213.578 54.9637H204.184L202.678 59.389H196.259L205.367 34.3362H212.467L221.574 59.389H215.084L213.578 54.9637ZM211.992 50.2759L208.881 41.0811L205.797 50.2759" fill="#00FFFF"/>
-          <path d="M188.953 56.228L183.786 45.6134V59.389H177.655V34.3362H187.946C189.93 34.3362 191.615 34.6811 193.001 35.3711C194.412 36.0611 195.464 37.0127 196.157 38.2261C196.85 39.4157 197.197 40.748 197.197 42.2231C197.197 43.8886 196.719 45.3755 195.762 46.6841C194.83 47.9926 193.444 48.9205 191.603 49.4677L197.412 59.389H194.021C191.862 59.389 189.894 58.1612 188.953 56.228ZM183.786 45.6134H187.587C188.711 45.6134 189.548 45.3399 190.097 44.7926C190.671 44.2454 190.958 43.4722 190.958 42.4729C190.958 41.5213 190.671 40.7718 190.097 40.2246C189.548 39.6774 188.711 39.4038 187.587 39.4038H183.786V45.6134Z" fill="#00FFFF"/>
-          <path d="M164.387 39.2253V44.293H172.598V49.0038H164.387V54.4998H173.674V59.389H158.256V34.3362H173.674V39.2253H164.387Z" fill="#00FFFF"/>
-          <path d="M147.652 42.259C147.198 41.4263 146.541 40.7958 145.68 40.3675C144.843 39.9155 143.851 39.6895 142.704 39.6895C140.72 39.6895 139.13 40.3438 137.935 41.6523C136.74 42.937 136.142 44.662 136.142 46.8269C136.142 49.1348 136.763 50.943 138.006 52.2516C139.274 53.5363 141.006 54.1787 143.206 54.1787C144.712 54.1787 145.979 53.798 147.007 53.0366C148.059 52.2754 148.823 51.1809 149.302 49.7534H146.038C143.543 49.7534 141.521 47.7402 141.521 45.2568L154.859 45.2568V50.9311C154.405 52.4538 153.628 53.8694 152.529 55.1779C151.453 56.4865 150.078 57.5452 148.405 58.3542C146.732 59.163 144.843 59.5676 142.74 59.5676C140.253 59.5676 138.031 59.0322 136.07 57.9616C134.134 56.8671 132.616 55.3563 131.516 53.4292C130.441 51.5022 129.903 49.3014 129.903 46.8269C129.903 44.3526 130.441 42.1519 131.516 40.2248C132.616 38.2739 134.134 36.7631 136.07 35.6924C138.006 34.598 140.218 34.0508 142.704 34.0508C145.716 34.0508 148.25 34.7765 150.306 36.2278C152.385 37.6791 153.76 39.6895 154.429 42.259H147.652Z" fill="#00FFFF"/>
-          <path d="M126.499 34.3362V59.389H120.368V34.3362H126.499Z" fill="#00FFFF"/>
-          <path d="M103.746 34.3362C106.399 34.3362 108.718 34.8596 110.702 35.9064C112.686 36.9532 114.216 38.4284 115.292 40.3317C116.391 42.2112 116.941 44.3882 116.941 46.8625C116.941 49.3131 116.391 51.49 115.292 53.3933C114.216 55.2968 112.674 56.7719 110.666 57.8186C108.682 58.8655 106.375 59.389 103.746 59.389H94.3152V34.3362H103.746ZM103.351 54.1072C105.67 54.1072 107.475 53.4766 108.766 52.2157C110.056 50.9548 110.702 49.1704 110.702 46.8625C110.702 44.5547 110.056 42.7584 108.766 41.4737C107.475 40.1889 105.67 39.5465 103.351 39.5465H100.447V54.1072H103.351Z" fill="#00FFFF"/>
-          <path d="M254.399 59.6007C256.388 59.6007 258 57.996 258 56.0165C258 54.0371 256.388 52.4324 254.399 52.4324C252.41 52.4324 250.798 54.0371 250.798 56.0165C250.798 57.996 252.41 59.6007 254.399 59.6007Z" fill="white"/>
-          <path d="M75.0347 71L70.1372 66.7991C68.5397 65.4288 66.5009 64.675 64.3919 64.675H3.66905L9.78491 62.544C11.7729 61.8513 13.4453 60.472 14.4984 58.6566L44.7876 6.44199L43.638 12.7097C43.2632 14.7533 43.6304 16.863 44.674 18.662L75.0347 71ZM41.1864 0L0 71H82.3729L41.1864 0Z" fill="#00FFFF"/>
-          <path d="M41.1864 50.5709C43.1753 50.5709 44.7876 48.9662 44.7876 46.9868C44.7876 45.0073 43.1753 43.4026 41.1864 43.4026C39.1976 43.4026 37.5853 45.0073 37.5853 46.9868C37.5853 48.9662 39.1976 50.5709 41.1864 50.5709Z" fill="#00FFFF"/>
-          <path d="M41.1864 58.2798C30.0578 58.2798 23.6153 48.9754 23.3464 48.5795L24.2635 46.8092L23.3464 45.039C23.6153 44.6431 30.0578 35.3387 41.1864 35.3387C52.3151 35.3387 58.7576 44.6431 59.0264 45.039L58.1094 46.8092L59.0264 48.5795C58.7576 48.9754 52.3151 58.2798 41.1864 58.2798ZM24.2635 46.8097C26.2639 48.8589 36.0107 51.9549 41.1864 51.9549C46.3594 51.9549 56.1057 48.8618 58.1094 46.8092C56.1057 44.7567 46.3594 41.6636 41.1864 41.6636C36.0131 41.6636 26.2669 44.7571 24.2635 46.8097Z" fill="white"/>
-        </svg>
-      </div>
-      <div class="mc-debug-content"></div>
-    `;
-      panel.style.display = "none";
-      document.body.appendChild(panel);
-    };
-    const open = () => {
-      createPanel();
-      isOpen = true;
-      if (panel) {
-        panel.style.display = "block";
-      }
-      render3();
-    };
-    const close = () => {
-      if (!panel) return;
-      isOpen = false;
-      panel.style.display = "none";
-    };
-    const toggle = () => {
-      if (isOpen) {
-        close();
-      } else {
-        open();
-      }
-    };
-    const register = (schema) => {
-      if (!schema?.id) return;
-      schemas.set(schema.id, schema);
-      if (isOpen) render3();
-    };
-    const unregister = (id) => {
-      schemas.delete(id);
-      if (isOpen) render3();
-    };
-    const refresh = () => {
-      if (isOpen) render3();
-    };
-    document.addEventListener("keydown", (event) => {
-      const { key, target } = event;
-      if (key.toLowerCase() !== "d") return;
-      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || target instanceof HTMLElement && target.isContentEditable) {
-        return;
-      }
-      event.preventDefault();
-      toggle();
-    });
-    const queued = Array.isArray(mc.__debugQueue) ? mc.__debugQueue.splice(0) : [];
-    mc.debug = {
-      register,
-      unregister,
-      refresh,
-      render: render3,
-      toggle,
-      open,
-      close
-    };
-    queued.forEach(register);
-    console.log("[MC Debug] Generic debugger ready \u2014 press D");
-  };
-
-  // src/mc/core/motion.ts
-  var MEDIA_QUERY = "(prefers-reduced-motion: reduce)";
-  var ROOT_ATTRIBUTE = "data-mc-reduced-motion";
-  var NATIVE_SELECTOR = "[mc-native-webflow-motion]";
-  var STYLE_ID = "mc-native-webflow-motion-style";
-  var VALID_MODES = ["system", "reduce", "full"];
-  var ensureMC2 = () => {
-    window.MC ||= {};
-    return window.MC;
-  };
-  var installNativeMotionCSS = () => {
-    if (document.getElementById(STYLE_ID)) {
-      return;
-    }
-    const style = document.createElement("style");
-    style.id = STYLE_ID;
-    style.textContent = `
-      html[${ROOT_ATTRIBUTE}="true"]
-      ${NATIVE_SELECTOR} {
-        opacity: 1 !important;
-        transform: none !important;
-        transition: none !important;
-        animation: none !important;
-        will-change: auto !important;
-      }
-
-      html[${ROOT_ATTRIBUTE}="true"]
-      ${NATIVE_SELECTOR}::before,
-      html[${ROOT_ATTRIBUTE}="true"]
-      ${NATIVE_SELECTOR}::after {
-        transition: none !important;
-        animation: none !important;
-      }
-    `;
-    document.head.appendChild(style);
-  };
-  var systemReduced = () => !!window.matchMedia?.(MEDIA_QUERY).matches;
-  var resolvedReduced = (mode) => {
-    if (mode === "reduce") {
-      return true;
-    }
-    if (mode === "full") {
-      return false;
-    }
-    return systemReduced();
-  };
-  var applyState = () => {
-    const { motion: motion2 } = ensureMC2();
-    const reduced = motion2?.reduced ?? systemReduced();
-    document.documentElement.setAttribute(ROOT_ATTRIBUTE, reduced ? "true" : "false");
-    return reduced;
-  };
-  var dispatchChange = () => {
-    const { motion: motion2 } = ensureMC2();
-    if (!motion2) {
-      return;
-    }
-    const detail = {
-      mode: motion2.mode,
-      reduced: motion2.reduced,
-      systemReduced: motion2.systemReduced
-    };
-    window.dispatchEvent(
-      new CustomEvent("mcMotionPreferenceChange", { detail })
-    );
-  };
-  var isMotionMode = (value) => typeof value === "string" && VALID_MODES.includes(value);
-  var initMCMotion = () => {
-    const mc = ensureMC2();
-    const existingMode = mc.motion?.mode;
-    mc.motion = {
-      mode: isMotionMode(existingMode) ? existingMode : "system",
-      get systemReduced() {
-        return systemReduced();
-      },
-      get reduced() {
-        return resolvedReduced(this.mode);
-      },
-      setMode(mode) {
-        if (!isMotionMode(mode)) {
-          return;
-        }
-        if (this.mode === mode) {
-          applyState();
-          dispatchChange();
-          return;
-        }
-        this.mode = mode;
-        applyState();
-        dispatchChange();
-      },
-      refresh() {
-        applyState();
-        dispatchChange();
-      }
-    };
-    installNativeMotionCSS();
-    applyState();
-    const media = window.matchMedia?.(MEDIA_QUERY);
-    if (media) {
-      const onSystemChange = () => {
-        if (ensureMC2().motion?.mode !== "system") {
-          return;
-        }
-        applyState();
-        dispatchChange();
-      };
-      if (typeof media.addEventListener === "function") {
-        media.addEventListener("change", onSystemChange);
-      } else if (typeof media.addListener === "function") {
-        media.addListener(onSystemChange);
-      }
-    }
-    console.log("[MC Motion] Ready", {
-      mode: ensureMC2().motion?.mode,
-      reduced: ensureMC2().motion?.reduced,
-      nativeTargets: document.querySelectorAll(NATIVE_SELECTOR).length
-    });
-  };
-
   // node_modules/.pnpm/gsap@3.15.0/node_modules/gsap/gsap-core.js
   function _assertThisInitialized(self) {
     if (self === void 0) {
@@ -7530,6 +7019,8 @@
 
   // src/mc/core/gsap.ts
   var registered = false;
+  var scrollTriggerDebug = false;
+  var scrollTriggerDebugListeners = /* @__PURE__ */ new Set();
   var registerPlugins = () => {
     if (registered) {
       return;
@@ -7538,6 +7029,686 @@
     registered = true;
   };
   registerPlugins();
+  var getScrollTriggerDebug = () => scrollTriggerDebug;
+  var setScrollTriggerDebug = (enabled) => {
+    if (scrollTriggerDebug === enabled) {
+      return;
+    }
+    scrollTriggerDebug = enabled;
+    scrollTriggerDebugListeners.forEach((listener) => {
+      listener(scrollTriggerDebug);
+    });
+  };
+  var onScrollTriggerDebugChange = (listener) => {
+    scrollTriggerDebugListeners.add(listener);
+    return () => {
+      scrollTriggerDebugListeners.delete(listener);
+    };
+  };
+
+  // src/mc/core/debug.ts
+  var CSS = `
+    #mc-debug-panel{
+      position:fixed;top:16px;right:16px;z-index:2147483647;
+      width:340px;max-height:calc(100vh - 32px);overflow-y:auto;
+      padding:14px;color:#fff;background:#2a2722;
+      border:1px solid rgba(255,255,255,.16);border-radius:12px;
+      box-shadow:0 20px 60px rgba(0,0,0,.45);
+      font:12px/1.4 'Poppins',Arial,Helvetica,sans-serif;
+      -webkit-font-smoothing:antialiased
+    }
+    #mc-debug-panel *{box-sizing:border-box}
+    .mc-debug-brand{display:flex;align-items:center;margin:-14px -14px 16px;padding:10px 14px 12px;border-bottom:1px solid rgba(255,255,255,.12)}
+    .mc-debug-logo{display:block;width:50px;height:auto}
+    .mc-debug-global{margin-bottom:10px;padding:0 0 10px;border-bottom:1px solid rgba(255,255,255,.12)}
+    .mc-debug-global-title,.mc-debug-group-title{margin-bottom:9px;color:#00ffff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+    .mc-debug-segmented{display:inline-grid;gap:2px;padding:2px;background:rgba(255,255,255,.055);border-radius:6px}
+    .mc-debug-segmented.is-three-up{grid-template-columns:repeat(3,minmax(42px,1fr))}
+    .mc-debug-segmented.is-two-up{grid-template-columns:repeat(2,minmax(42px,1fr))}
+    .mc-debug-segmented button{appearance:none;border:0;border-radius:4px;padding:5px 6px;background:transparent;color:rgba(255,255,255,.55);font:600 9px/1 'Poppins',Arial,Helvetica,sans-serif;cursor:pointer}
+    .mc-debug-segmented button:hover{color:#fff;background:rgba(255,255,255,.06)}
+    .mc-debug-segmented button.is-active{color:#2a2722;background:#00ffff;font-weight:700}
+    .mc-debug-group{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.12)}
+    .mc-debug-group.is-first-group{margin-top:0;padding-top:0;border-top:0}
+    .mc-debug-group-title{margin-bottom:8px}
+    .mc-debug-section+.mc-debug-section{margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)}
+    .mc-debug-section-head{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.04)}
+    .mc-debug-section-head[data-open="true"]{background:rgba(255,255,255,.06)}
+    .mc-debug-disclosure{appearance:none;display:flex;align-items:center;justify-content:space-between;flex:1;min-width:0;padding:0;border:0;background:none;color:inherit;font:inherit;cursor:pointer;text-align:left}
+    .mc-debug-disclosure:hover .mc-debug-title,.mc-debug-disclosure:focus-visible .mc-debug-title{color:#fff}
+    .mc-debug-disclosure:focus-visible,.mc-debug-icon-button:focus-visible{outline:2px solid #00ffff;outline-offset:3px;border-radius:6px}
+    .mc-debug-disclosure-copy{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+    .mc-debug-disclosure-icon{display:flex;align-items:center;justify-content:center;flex:0 0 auto;width:16px;height:16px;color:#00ffff;transition:transform .18s ease}
+    .mc-debug-disclosure[aria-expanded="true"] .mc-debug-disclosure-icon{transform:rotate(90deg)}
+    .mc-debug-title{min-width:0;flex:1;color:rgba(255,255,255,.9);font-weight:700}
+    .mc-debug-section-body[hidden]{display:none}
+    .mc-debug-section-body{padding:6px 0 0}
+    .mc-debug-icon-button{appearance:none;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:22px;height:22px;padding:0;border:0;border-radius:999px;background:transparent;color:#00ffff;cursor:pointer}
+    .mc-debug-icon-button:hover{background:rgba(0,255,255,.14);color:#00ffff}
+    .mc-debug-icon-button svg{display:block;width:13px;height:13px}
+    .mc-debug-stats{display:grid;grid-template-columns:1fr auto;gap:5px 12px;margin:-3px 0 16px;padding:10px;background:rgba(255,255,255,.055);border-radius:6px;color:rgba(255,255,255,.64);font-size:10px}
+    .mc-debug-stats strong{color:#fff;font-weight:600;font-variant-numeric:tabular-nums}
+    .mc-debug-control{display:block;margin-bottom:16px}
+    .mc-debug-control:last-child{margin-bottom:0}
+    .mc-debug-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:7px}
+    .mc-debug-label{color:rgba(255,255,255,.82)}
+    .mc-debug-value{color:#00ffff;font-variant-numeric:tabular-nums}
+    .mc-debug-control input[type=range]{--mc-range-progress:50%;-webkit-appearance:none;appearance:none;display:block;width:100%;height:16px;margin:0;background:transparent;cursor:pointer}
+    .mc-debug-control input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:999px;background:linear-gradient(to right,#00ffff 0%,#00ffff var(--mc-range-progress),rgba(255,255,255,.14) var(--mc-range-progress),rgba(255,255,255,.14) 100%)}
+    .mc-debug-control input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;margin-top:-5px;border:2px solid #2a2722;border-radius:50%;background:#00ffff;box-shadow:0 0 0 1px #00ffff}
+    .mc-debug-control input[type=range]::-moz-range-track{height:4px;border-radius:999px;background:rgba(255,255,255,.14)}
+    .mc-debug-control input[type=range]::-moz-range-progress{height:4px;border-radius:999px;background:#00ffff}
+    .mc-debug-control input[type=range]::-moz-range-thumb{width:14px;height:14px;border:2px solid #2a2722;border-radius:50%;background:#00ffff}
+    .mc-debug-text{appearance:none;display:block;width:100%;padding:8px 10px;border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(255,255,255,.04);color:#fff;font:500 11px/1.3 'Poppins',Arial,Helvetica,sans-serif}
+    .mc-debug-text::placeholder{color:rgba(255,255,255,.35)}
+    .mc-debug-text:hover{border-color:rgba(255,255,255,.22)}
+    .mc-debug-text:focus-visible{outline:2px solid #00ffff;outline-offset:2px;border-color:#00ffff}
+    .mc-debug-button{appearance:none;width:100%;margin-top:14px;padding:9px 12px;border:1px solid #00ffff;border-radius:6px;background:transparent;color:#00ffff;font:600 10px/1 'Poppins',Arial,Helvetica,sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+    .mc-debug-button:hover{background:#00ffff;color:#2a2722}
+    .mc-debug-button:active{transform:translateY(1px)}
+    .mc-debug-status{margin-bottom:12px;padding:10px;background:rgba(255,255,255,.06);border-radius:6px;color:rgba(255,255,255,.65);white-space:pre-wrap}
+  `;
+  var ensureMC = () => {
+    window.MC ||= {};
+    return window.MC;
+  };
+  var ensureMotionAPI = () => {
+    const mc = ensureMC();
+    if (mc.motion) {
+      return mc.motion;
+    }
+    const mediaQuery = "(prefers-reduced-motion: reduce)";
+    const rootAttribute = "data-mc-reduced-motion";
+    const applyState2 = () => {
+      document.documentElement.setAttribute(rootAttribute, mc.motion?.reduced ? "true" : "false");
+    };
+    mc.motion = {
+      mode: "system",
+      get systemReduced() {
+        return !!window.matchMedia?.(mediaQuery).matches;
+      },
+      get reduced() {
+        if (this.mode === "reduce") {
+          return true;
+        }
+        if (this.mode === "full") {
+          return false;
+        }
+        return this.systemReduced;
+      },
+      setMode(mode) {
+        if (!["system", "reduce", "full"].includes(mode)) {
+          return;
+        }
+        this.mode = mode;
+        applyState2();
+        window.dispatchEvent(
+          new CustomEvent("mcMotionPreferenceChange", {
+            detail: {
+              mode: this.mode,
+              reduced: this.reduced,
+              systemReduced: this.systemReduced
+            }
+          })
+        );
+      },
+      refresh() {
+        applyState2();
+        window.dispatchEvent(
+          new CustomEvent("mcMotionPreferenceChange", {
+            detail: {
+              mode: this.mode,
+              reduced: this.reduced,
+              systemReduced: this.systemReduced
+            }
+          })
+        );
+      }
+    };
+    applyState2();
+    const media = window.matchMedia?.(mediaQuery);
+    if (media) {
+      const systemChanged = () => {
+        if (ensureMC().motion?.mode === "system") {
+          ensureMC().motion?.refresh();
+        }
+      };
+      if (typeof media.addEventListener === "function") {
+        media.addEventListener("change", systemChanged);
+      } else if (typeof media.addListener === "function") {
+        media.addListener(systemChanged);
+      }
+    }
+    return mc.motion;
+  };
+  var initMCDebug = () => {
+    const mc = ensureMC();
+    const motion2 = ensureMotionAPI();
+    const schemas = /* @__PURE__ */ new Map();
+    const collapsedState = /* @__PURE__ */ new Map();
+    let panel = null;
+    let isOpen = false;
+    const formatValue = (control, value) => {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return String(value ?? "");
+      if (typeof control.format === "function") {
+        return control.format(n);
+      }
+      const decimals = Number.isInteger(control.decimals) ? control.decimals : Number.isInteger(Number(control.step)) && Number(control.step) >= 1 ? 0 : String(control.step ?? "").split(".")[1]?.length ?? 1;
+      return `${n.toFixed(decimals)}${control.suffix || ""}`;
+    };
+    const read = (instance, schema, key) => {
+      if (typeof schema.get === "function") return schema.get(instance, key);
+      if (typeof instance?.get === "function") return instance.get(key);
+      if (instance?.settings && key in instance.settings) return instance.settings[key];
+    };
+    const write = (instance, schema, key, value) => {
+      if (typeof schema.set === "function") {
+        schema.set(instance, key, value);
+        return;
+      }
+      if (typeof instance?.set === "function") {
+        instance.set(key, value);
+      }
+    };
+    const createRange = (instance, schema, control) => {
+      const current = read(instance, schema, control.key);
+      if (current == null || !Number.isFinite(Number(current))) return null;
+      const wrap3 = document.createElement("label");
+      wrap3.className = "mc-debug-control";
+      const row = document.createElement("div");
+      row.className = "mc-debug-row";
+      const label = document.createElement("span");
+      label.className = "mc-debug-label";
+      label.textContent = control.label;
+      const display = document.createElement("span");
+      display.className = "mc-debug-value";
+      display.textContent = formatValue(control, current);
+      const input = document.createElement("input");
+      input.type = "range";
+      input.min = String(control.min);
+      input.max = String(control.max);
+      input.step = String(control.step);
+      input.value = String(current);
+      const updateProgress = () => {
+        const min = Number(input.min);
+        const max = Number(input.max);
+        const val = Number(input.value);
+        const pct = max === min ? 0 : (val - min) / (max - min) * 100;
+        input.style.setProperty("--mc-range-progress", `${Math.max(0, Math.min(100, pct))}%`);
+      };
+      updateProgress();
+      input.addEventListener("input", () => {
+        updateProgress();
+        display.textContent = formatValue(control, input.value);
+        if (control.event !== "change") {
+          write(instance, schema, control.key, Number(input.value));
+        }
+      });
+      if (control.event === "change") {
+        input.addEventListener("change", () => {
+          write(instance, schema, control.key, Number(input.value));
+        });
+      }
+      row.append(label, display);
+      wrap3.append(row, input);
+      return wrap3;
+    };
+    const createButton = (instance, control) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "mc-debug-button";
+      button.textContent = control.label;
+      button.addEventListener("click", () => {
+        if (typeof control.onClick === "function") {
+          control.onClick(instance);
+          return;
+        }
+        const actionTarget = instance;
+        if (control.action && typeof actionTarget[control.action] === "function") {
+          const action = actionTarget[control.action];
+          action();
+        }
+      });
+      return button;
+    };
+    const createText = (instance, schema, control) => {
+      const current = read(instance, schema, control.key);
+      const wrap3 = document.createElement("label");
+      wrap3.className = "mc-debug-control";
+      const row = document.createElement("div");
+      row.className = "mc-debug-row";
+      const label = document.createElement("span");
+      label.className = "mc-debug-label";
+      label.textContent = control.label;
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "mc-debug-text";
+      input.value = current == null ? "" : String(current);
+      if (control.placeholder) {
+        input.placeholder = control.placeholder;
+      }
+      const commit = () => {
+        write(instance, schema, control.key, input.value);
+      };
+      input.addEventListener("input", () => {
+        if (control.event !== "change") {
+          commit();
+        }
+      });
+      if (control.event === "change") {
+        input.addEventListener("change", commit);
+      }
+      row.appendChild(label);
+      wrap3.append(row, input);
+      return wrap3;
+    };
+    const isReplayControl = (control) => control.action === "replay" || control.label.trim().toLowerCase() === "replay";
+    const createReplayButton = (instance, control) => {
+      if (!control && typeof instance?.replay !== "function") {
+        return null;
+      }
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "mc-debug-icon-button";
+      button.title = "Replay";
+      button.setAttribute("aria-label", "Replay");
+      button.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20 6V11H15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M18.364 15A8 8 0 1 1 20 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `;
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (control) {
+          if (typeof control.onClick === "function") {
+            control.onClick(instance);
+            return;
+          }
+          if (control.action && typeof instance[control.action] === "function") {
+            instance[control.action]();
+            return;
+          }
+        }
+        if (typeof instance.replay === "function") {
+          instance.replay();
+        }
+      });
+      return button;
+    };
+    const createStats = (schema) => {
+      if (!Array.isArray(schema.stats) || !schema.stats.length) return null;
+      const block = document.createElement("div");
+      block.className = "mc-debug-stats";
+      schema.stats.forEach((stat) => {
+        const label = document.createElement("span");
+        label.textContent = stat.label;
+        const value = document.createElement("strong");
+        const raw = typeof stat.value === "function" ? stat.value() : stat.value;
+        value.textContent = typeof stat.format === "function" ? stat.format(raw) : Number.isFinite(Number(raw)) ? Math.round(Number(raw)).toLocaleString() : String(raw ?? "");
+        block.append(label, value);
+      });
+      return block;
+    };
+    const createSection = (instance, schema, index, total, defaultOpen) => {
+      const section = document.createElement("div");
+      section.className = "mc-debug-section";
+      const sectionKey = `${schema.id}:${index}`;
+      const collapsed = collapsedState.has(sectionKey) ? collapsedState.get(sectionKey) : !defaultOpen;
+      const bodyId = `mc-debug-section-${schema.id}-${index}`;
+      let titleText = "Controls";
+      if (schema.instanceLabel !== false) {
+        if (typeof schema.instanceLabel === "function") {
+          titleText = schema.instanceLabel(instance, index, total);
+        } else {
+          const base = schema.instanceLabel || "Instance";
+          titleText = total > 1 ? `${base} ${index + 1}` : base;
+        }
+      }
+      const header = document.createElement("div");
+      header.className = "mc-debug-section-head";
+      header.dataset.open = String(!collapsed);
+      const disclosure = document.createElement("button");
+      disclosure.type = "button";
+      disclosure.className = "mc-debug-disclosure";
+      disclosure.setAttribute("aria-expanded", String(!collapsed));
+      disclosure.setAttribute("aria-controls", bodyId);
+      const disclosureCopy = document.createElement("span");
+      disclosureCopy.className = "mc-debug-disclosure-copy";
+      const title = document.createElement("span");
+      title.className = "mc-debug-title";
+      title.textContent = titleText;
+      disclosureCopy.appendChild(title);
+      const body = document.createElement("div");
+      body.className = "mc-debug-section-body";
+      body.id = bodyId;
+      body.hidden = collapsed;
+      disclosure.addEventListener("click", () => {
+        const nextCollapsed = !body.hidden;
+        body.hidden = nextCollapsed;
+        disclosure.setAttribute("aria-expanded", String(!nextCollapsed));
+        header.dataset.open = String(!nextCollapsed);
+        collapsedState.set(sectionKey, nextCollapsed);
+      });
+      const replayControl = (schema.controls || []).find(
+        (control) => control.type === "button" && isReplayControl(control)
+      );
+      const replayButton = createReplayButton(instance, replayControl);
+      const chevron = document.createElement("span");
+      chevron.className = "mc-debug-disclosure-icon";
+      chevron.setAttribute("aria-hidden", "true");
+      chevron.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `;
+      disclosure.append(disclosureCopy, chevron);
+      header.appendChild(disclosure);
+      if (replayButton) {
+        header.appendChild(replayButton);
+      }
+      section.appendChild(header);
+      (schema.controls || []).forEach((control) => {
+        if (control.type === "button" && isReplayControl(control)) {
+          return;
+        }
+        let element = null;
+        if (control.type === "range") {
+          element = createRange(instance, schema, control);
+        } else if (control.type === "text") {
+          element = createText(instance, schema, control);
+        } else if (control.type === "button") {
+          element = createButton(instance, control);
+        }
+        if (element) body.appendChild(element);
+      });
+      section.appendChild(body);
+      return section;
+    };
+    const createSegmentedControl = (titleText, options, activeValue, onSelect) => {
+      const wrap3 = document.createElement("div");
+      wrap3.className = "mc-debug-global";
+      const title = document.createElement("div");
+      title.className = "mc-debug-global-title";
+      title.textContent = titleText;
+      const control = document.createElement("div");
+      control.className = `mc-debug-segmented ${options.length === 2 ? "is-two-up" : "is-three-up"}`;
+      options.forEach(({ value, label }) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = label;
+        if (activeValue === value) button.classList.add("is-active");
+        button.addEventListener("click", () => {
+          onSelect(value, button, control);
+        });
+        control.appendChild(button);
+      });
+      wrap3.append(title, control);
+      return wrap3;
+    };
+    const motionControl = () => createSegmentedControl(
+      "Reduce Motion",
+      [
+        { value: "system", label: "System" },
+        { value: "reduce", label: "On" },
+        { value: "full", label: "Off" }
+      ],
+      motion2.mode,
+      (mode, button, control) => {
+        motion2.setMode(mode);
+        control.querySelectorAll("button").forEach((el) => el.classList.remove("is-active"));
+        button.classList.add("is-active");
+      }
+    );
+    const scrollTriggerDebugControl = () => createSegmentedControl(
+      "ScrollTrigger Debug",
+      [
+        { value: "on", label: "On" },
+        { value: "off", label: "Off" }
+      ],
+      getScrollTriggerDebug() ? "on" : "off",
+      (value, button, control) => {
+        setScrollTriggerDebug(value === "on");
+        control.querySelectorAll("button").forEach((el) => el.classList.remove("is-active"));
+        button.classList.add("is-active");
+      }
+    );
+    const render3 = () => {
+      if (!panel) return;
+      const content = panel.querySelector(".mc-debug-content");
+      if (!content) return;
+      content.innerHTML = "";
+      content.appendChild(motionControl());
+      content.appendChild(scrollTriggerDebugControl());
+      let rendered = false;
+      let sectionCount = 0;
+      schemas.forEach((schema) => {
+        const instances = typeof schema.instances === "function" ? (schema.instances() || []).filter(Boolean) : [];
+        const hasStats = Array.isArray(schema.stats) && schema.stats.length;
+        if (!instances.length && !hasStats) return;
+        const group = document.createElement("div");
+        group.className = "mc-debug-group";
+        if (!rendered) {
+          group.classList.add("is-first-group");
+        }
+        const title = document.createElement("div");
+        title.className = "mc-debug-group-title";
+        title.textContent = schema.label || schema.id;
+        group.appendChild(title);
+        const stats = createStats(schema);
+        if (stats) group.appendChild(stats);
+        instances.forEach((instance, index) => {
+          group.appendChild(
+            createSection(instance, schema, index, instances.length, sectionCount === 0)
+          );
+          sectionCount += 1;
+        });
+        content.appendChild(group);
+        rendered = true;
+      });
+      if (!rendered) {
+        const status = document.createElement("div");
+        status.className = "mc-debug-status";
+        status.textContent = "No MC effects registered.";
+        content.appendChild(status);
+      }
+    };
+    const createPanel = () => {
+      if (panel) return;
+      const style = document.createElement("style");
+      style.textContent = CSS;
+      document.head.appendChild(style);
+      panel = document.createElement("div");
+      panel.id = "mc-debug-panel";
+      panel.innerHTML = `
+      <div class="mc-debug-brand">
+        <svg class="mc-debug-logo" viewBox="0 0 83 71" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Digerati eye">
+          <path d="M75.0347 71L70.1372 66.7991C68.5397 65.4288 66.5009 64.675 64.3919 64.675H3.66905L9.78491 62.544C11.7729 61.8513 13.4453 60.472 14.4984 58.6566L44.7876 6.44199L43.638 12.7097C43.2632 14.7533 43.6304 16.863 44.674 18.662L75.0347 71ZM41.1864 0L0 71H82.3729L41.1864 0Z" fill="#00FFFF"/>
+          <path d="M41.1864 50.5709C43.1753 50.5709 44.7876 48.9662 44.7876 46.9868C44.7876 45.0073 43.1753 43.4026 41.1864 43.4026C39.1976 43.4026 37.5853 45.0073 37.5853 46.9868C37.5853 48.9662 39.1976 50.5709 41.1864 50.5709Z" fill="#00FFFF"/>
+          <path d="M41.1864 58.2798C30.0578 58.2798 23.6153 48.9754 23.3464 48.5795L24.2635 46.8092L23.3464 45.039C23.6153 44.6431 30.0578 35.3387 41.1864 35.3387C52.3151 35.3387 58.7576 44.6431 59.0264 45.039L58.1094 46.8092L59.0264 48.5795C58.7576 48.9754 52.3151 58.2798 41.1864 58.2798ZM24.2635 46.8097C26.2639 48.8589 36.0107 51.9549 41.1864 51.9549C46.3594 51.9549 56.1057 48.8618 58.1094 46.8092C56.1057 44.7567 46.3594 41.6636 41.1864 41.6636C36.0131 41.6636 26.2669 44.7571 24.2635 46.8097Z" fill="white"/>
+        </svg>
+      </div>
+      <div class="mc-debug-content"></div>
+    `;
+      panel.style.display = "none";
+      document.body.appendChild(panel);
+    };
+    const open = () => {
+      createPanel();
+      isOpen = true;
+      if (panel) {
+        panel.style.display = "block";
+      }
+      render3();
+    };
+    const close = () => {
+      if (!panel) return;
+      isOpen = false;
+      panel.style.display = "none";
+    };
+    const toggle = () => {
+      if (isOpen) {
+        close();
+      } else {
+        open();
+      }
+    };
+    const register = (schema) => {
+      if (!schema?.id) return;
+      schemas.set(schema.id, schema);
+      if (isOpen) render3();
+    };
+    const unregister = (id) => {
+      schemas.delete(id);
+      if (isOpen) render3();
+    };
+    const refresh = () => {
+      if (isOpen) render3();
+    };
+    document.addEventListener("keydown", (event) => {
+      const { key, target } = event;
+      if (key.toLowerCase() !== "d") return;
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || target instanceof HTMLElement && target.isContentEditable) {
+        return;
+      }
+      event.preventDefault();
+      toggle();
+    });
+    const queued = Array.isArray(mc.__debugQueue) ? mc.__debugQueue.splice(0) : [];
+    mc.debug = {
+      register,
+      unregister,
+      refresh,
+      render: render3,
+      toggle,
+      open,
+      close
+    };
+    queued.forEach(register);
+    console.log("[MC Debug] Generic debugger ready \u2014 press D");
+  };
+
+  // src/mc/core/motion.ts
+  var MEDIA_QUERY = "(prefers-reduced-motion: reduce)";
+  var ROOT_ATTRIBUTE = "data-mc-reduced-motion";
+  var NATIVE_SELECTOR = "[mc-native-webflow-motion]";
+  var STYLE_ID = "mc-native-webflow-motion-style";
+  var VALID_MODES = ["system", "reduce", "full"];
+  var ensureMC2 = () => {
+    window.MC ||= {};
+    return window.MC;
+  };
+  var installNativeMotionCSS = () => {
+    if (document.getElementById(STYLE_ID)) {
+      return;
+    }
+    const style = document.createElement("style");
+    style.id = STYLE_ID;
+    style.textContent = `
+      html[${ROOT_ATTRIBUTE}="true"]
+      ${NATIVE_SELECTOR} {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+        animation: none !important;
+        will-change: auto !important;
+      }
+
+      html[${ROOT_ATTRIBUTE}="true"]
+      ${NATIVE_SELECTOR}::before,
+      html[${ROOT_ATTRIBUTE}="true"]
+      ${NATIVE_SELECTOR}::after {
+        transition: none !important;
+        animation: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+  };
+  var systemReduced = () => !!window.matchMedia?.(MEDIA_QUERY).matches;
+  var resolvedReduced = (mode) => {
+    if (mode === "reduce") {
+      return true;
+    }
+    if (mode === "full") {
+      return false;
+    }
+    return systemReduced();
+  };
+  var applyState = () => {
+    const { motion: motion2 } = ensureMC2();
+    const reduced = motion2?.reduced ?? systemReduced();
+    document.documentElement.setAttribute(ROOT_ATTRIBUTE, reduced ? "true" : "false");
+    return reduced;
+  };
+  var dispatchChange = () => {
+    const { motion: motion2 } = ensureMC2();
+    if (!motion2) {
+      return;
+    }
+    const detail = {
+      mode: motion2.mode,
+      reduced: motion2.reduced,
+      systemReduced: motion2.systemReduced
+    };
+    window.dispatchEvent(
+      new CustomEvent("mcMotionPreferenceChange", { detail })
+    );
+  };
+  var isMotionMode = (value) => typeof value === "string" && VALID_MODES.includes(value);
+  var initMCMotion = () => {
+    const mc = ensureMC2();
+    const existingMode = mc.motion?.mode;
+    mc.motion = {
+      mode: isMotionMode(existingMode) ? existingMode : "system",
+      get systemReduced() {
+        return systemReduced();
+      },
+      get reduced() {
+        return resolvedReduced(this.mode);
+      },
+      setMode(mode) {
+        if (!isMotionMode(mode)) {
+          return;
+        }
+        if (this.mode === mode) {
+          applyState();
+          dispatchChange();
+          return;
+        }
+        this.mode = mode;
+        applyState();
+        dispatchChange();
+      },
+      refresh() {
+        applyState();
+        dispatchChange();
+      }
+    };
+    installNativeMotionCSS();
+    applyState();
+    const media = window.matchMedia?.(MEDIA_QUERY);
+    if (media) {
+      const onSystemChange = () => {
+        if (ensureMC2().motion?.mode !== "system") {
+          return;
+        }
+        applyState();
+        dispatchChange();
+      };
+      if (typeof media.addEventListener === "function") {
+        media.addEventListener("change", onSystemChange);
+      } else if (typeof media.addListener === "function") {
+        media.addListener(onSystemChange);
+      }
+    }
+    console.log("[MC Motion] Ready", {
+      mode: ensureMC2().motion?.mode,
+      reduced: ensureMC2().motion?.reduced,
+      nativeTargets: document.querySelectorAll(NATIVE_SELECTOR).length
+    });
+  };
 
   // src/mc/effects/chalk.ts
   var SVG_NS = "http://www.w3.org/2000/svg";
@@ -8119,7 +8290,7 @@
       trigger = ScrollTrigger2.create({
         trigger: sequenceElement,
         start: settings.start,
-        markers: settings.debug,
+        markers: getScrollTriggerDebug(),
         onEnter: () => {
           revealWrappers(instances);
           timeline2?.pause(0);
@@ -8146,6 +8317,16 @@
         return settings[key];
       },
       set(key, value) {
+        if (key === "start") {
+          const start = String(value || "").trim();
+          if (!start) {
+            return;
+          }
+          settings.start = start;
+          sequenceElement.setAttribute("mc-chalk-start", settings.start);
+          build();
+          return;
+        }
         const number = Number(value);
         if (!Number.isFinite(number)) {
           return;
@@ -8220,6 +8401,10 @@
       window.__mcChalkMotionListener = true;
       window.addEventListener("mcMotionPreferenceChange", () => {
         sequenceControllers.forEach((controller) => controller.applyMotionPreference());
+        ScrollTrigger2.refresh();
+      });
+      onScrollTriggerDebugChange(() => {
+        sequenceControllers.forEach((controller) => controller.rebuild());
         ScrollTrigger2.refresh();
       });
       reducedMotionQuery.addEventListener?.("change", () => {
@@ -8368,6 +8553,13 @@
               event: "change"
             },
             {
+              type: "text",
+              key: "start",
+              label: "Start",
+              placeholder: DEFAULTS.start,
+              event: "change"
+            },
+            {
               type: "button",
               label: "Replay",
               action: "replay"
@@ -8399,7 +8591,8 @@
     duration: 0.8,
     colourDuration: 0.8,
     stagger: 0.8,
-    colour: "#ffffff"
+    colour: "#ffffff",
+    start: "top bottom"
   };
   var ensureMC4 = () => {
     window.MC ||= {};
@@ -8443,7 +8636,8 @@
           DEFAULTS2.colourDuration
         ),
         stagger: numberAttribute2(component, "mc-colour-reveal-stagger", DEFAULTS2.stagger),
-        colour: component.getAttribute("mc-colour-reveal-colour") || DEFAULTS2.colour
+        colour: component.getAttribute("mc-colour-reveal-colour") || DEFAULTS2.colour,
+        start: component.getAttribute("mc-colour-reveal-start") || DEFAULTS2.start
       };
       this.split = null;
       this.timeline = null;
@@ -8462,6 +8656,18 @@
         this.settings.colour = String(rawValue);
         this.component.setAttribute("mc-colour-reveal-colour", this.settings.colour);
         this.component.style.setProperty("--mc-colour-reveal", this.settings.colour);
+        return;
+      }
+      if (key === "start") {
+        const value2 = String(rawValue || "").trim();
+        if (!value2) {
+          return;
+        }
+        this.settings.start = value2;
+        this.component.setAttribute("mc-colour-reveal-start", this.settings.start);
+        if (this.ready && !reducedMotionEnabled()) {
+          void this.buildAnimated(true);
+        }
         return;
       }
       const value = Number(rawValue);
@@ -8538,8 +8744,9 @@
             paused: replayImmediately,
             scrollTrigger: replayImmediately ? void 0 : {
               trigger: this.component,
-              start: "top bottom",
+              start: this.settings.start,
               end: "top 80%",
+              markers: getScrollTriggerDebug(),
               toggleActions: "none play none reset"
             }
           });
@@ -8589,16 +8796,17 @@
         this.showFinal();
         return;
       }
-      if (!this.split || !this.timeline) {
-        await this.buildAnimated(true);
-        return;
-      }
-      this.component.style.visibility = "visible";
-      this.timeline.restart(true);
+      await this.buildAnimated(true);
     }
     async motionChanged() {
       if (reducedMotionEnabled()) {
         this.showFinal();
+        return;
+      }
+      await this.buildAnimated(false);
+    }
+    async refreshScrollTriggerDebug() {
+      if (reducedMotionEnabled() || !this.ready) {
         return;
       }
       await this.buildAnimated(false);
@@ -8657,6 +8865,13 @@
           event: "change"
         },
         {
+          type: "text",
+          key: "start",
+          label: "Start",
+          placeholder: DEFAULTS2.start,
+          event: "change"
+        },
+        {
           type: "button",
           label: "Replay",
           action: "replay"
@@ -8664,6 +8879,11 @@
       ]
     });
     window.addEventListener("mcMotionPreferenceChange", updateMotion);
+    onScrollTriggerDebugChange(() => {
+      mc.colourReveal?.forEach((instance) => {
+        void instance.refreshScrollTriggerDebug();
+      });
+    });
     const motionMedia = window.matchMedia?.("(prefers-reduced-motion: reduce)");
     if (motionMedia) {
       const systemChanged = () => {
@@ -8862,6 +9082,8 @@
     revealComplete;
     startTime;
     frameId;
+    revealStartFrameId;
+    revealPlayFrameId;
     parentPositionChanged;
     originalParentPosition;
     boundPointerMove;
@@ -8917,6 +9139,8 @@
       this.revealComplete = false;
       this.startTime = null;
       this.frameId = null;
+      this.revealStartFrameId = null;
+      this.revealPlayFrameId = null;
       this.parentPositionChanged = false;
       this.originalParentPosition = "";
       this.boundPointerMove = this.onPointerMove.bind(this);
@@ -9000,10 +9224,7 @@
       this.reducedStatic = true;
       this.image.style.opacity = "1";
       if (this.canvas) this.canvas.style.display = "none";
-      if (this.frameId !== null) {
-        cancelAnimationFrame(this.frameId);
-        this.frameId = null;
-      }
+      this.cancelScheduledFrames();
       this.autoLastTime = null;
     }
     async onMotionPreferenceChange() {
@@ -9053,6 +9274,37 @@
       this.image.style.opacity = "0";
       if (this.canvas) this.canvas.style.display = "block";
       this.startReveal();
+    }
+    cancelScheduledFrames() {
+      if (this.frameId !== null) {
+        cancelAnimationFrame(this.frameId);
+        this.frameId = null;
+      }
+      if (this.revealStartFrameId !== null) {
+        cancelAnimationFrame(this.revealStartFrameId);
+        this.revealStartFrameId = null;
+      }
+      if (this.revealPlayFrameId !== null) {
+        cancelAnimationFrame(this.revealPlayFrameId);
+        this.revealPlayFrameId = null;
+      }
+    }
+    resetRevealState() {
+      this.cancelScheduledFrames();
+      this.reducedStatic = false;
+      this.startTime = null;
+      this.revealComplete = false;
+      this.pointer.x = 0;
+      this.pointer.y = 0;
+      this.target.x = 0;
+      this.target.y = 0;
+      this.scroll.x = 0;
+      this.scroll.y = 0;
+      this.auto.x = 0;
+      this.auto.y = 0;
+      this.auto.zoom = 0;
+      this.autoElapsed = 0;
+      this.autoLastTime = null;
     }
     createCanvas() {
       const parent = this.image.parentElement;
@@ -9116,6 +9368,9 @@
       }
     }
     createScrollTracking() {
+      this.scrollTween?.kill?.();
+      this.scrollTween = null;
+      this.scrollTrigger = null;
       this.scrollTween = gsapWithCSS.to(this.scroll, {
         x: this.settings.scrollX,
         y: this.settings.scrollY,
@@ -9124,6 +9379,7 @@
           trigger: this.image.parentElement || this.image,
           start: "top top",
           end: "bottom top",
+          markers: getScrollTriggerDebug(),
           scrub: true,
           invalidateOnRefresh: true,
           onUpdate: () => {
@@ -9134,6 +9390,19 @@
         }
       });
       this.scrollTrigger = this.scrollTween.scrollTrigger || null;
+    }
+    refreshScrollTriggerDebug() {
+      if (!this.effectLoaded) {
+        return;
+      }
+      if (!this.scrollTrackingEnabled) {
+        this.scrollTween?.kill?.();
+        this.scrollTween = null;
+        this.scrollTrigger = null;
+        return;
+      }
+      this.createScrollTracking();
+      this.scrollTrigger?.refresh();
     }
     updateAuto(now) {
       if (!this.autoTrackingEnabled || !this.revealComplete || !this.inView || motion().reduced) {
@@ -9730,24 +9999,15 @@ void main() {
         this.showStaticImage();
         return;
       }
-      this.reducedStatic = false;
-      this.startTime = null;
-      this.revealComplete = false;
-      this.pointer.x = 0;
-      this.pointer.y = 0;
-      this.target.x = 0;
-      this.target.y = 0;
-      this.auto.x = 0;
-      this.auto.y = 0;
-      this.auto.zoom = 0;
-      this.autoElapsed = 0;
-      this.autoLastTime = null;
+      this.resetRevealState();
       const now = performance.now();
       this.drawFrame(now, 0);
-      requestAnimationFrame(() => {
+      this.revealStartFrameId = requestAnimationFrame(() => {
+        this.revealStartFrameId = null;
         if (!this.canvas) return;
         this.canvas.style.opacity = "1";
-        requestAnimationFrame((startTime) => {
+        this.revealPlayFrameId = requestAnimationFrame((startTime) => {
+          this.revealPlayFrameId = null;
           this.startTime = startTime;
           this.requestFrame();
         });
@@ -9872,6 +10132,11 @@ void main() {
     }
   };
   var initMCDepth = () => {
+    onScrollTriggerDebugChange(() => {
+      ensureMC5().depth?.filter(Boolean).forEach((instance) => {
+        instance.refreshScrollTriggerDebug();
+      });
+    });
     const motionMedia = window.matchMedia?.("(prefers-reduced-motion: reduce)");
     if (motionMedia) {
       const onSystemMotionChange = () => {
@@ -10466,7 +10731,7 @@ void main() {
         id: `mc-illustration-sequence-${sectionIndex + 1}`,
         trigger: section,
         start: settings.start,
-        markers: settings.debug,
+        markers: getScrollTriggerDebug(),
         onEnter: () => {
           master?.play(0);
         },
@@ -10495,6 +10760,16 @@ void main() {
         return settings[key];
       },
       set(key, rawValue) {
+        if (key === "start") {
+          const value2 = String(rawValue || "").trim();
+          if (!value2) {
+            return;
+          }
+          settings.start = value2;
+          section.setAttribute("mc-illustration-start", settings.start);
+          rebuild();
+          return;
+        }
         const value = Number(rawValue);
         if (!Number.isFinite(value)) {
           return;
@@ -10579,6 +10854,13 @@ void main() {
           event: "change"
         },
         {
+          type: "text",
+          key: "start",
+          label: "Start",
+          placeholder: DEFAULT_START,
+          event: "change"
+        },
+        {
           type: "button",
           label: "Replay",
           action: "replay"
@@ -10593,6 +10875,7 @@ void main() {
   };
   var initMCIllustration = () => {
     window.addEventListener("mcMotionPreferenceChange", rebuildAllSequences);
+    onScrollTriggerDebugChange(rebuildAllSequences);
     const motionMedia = window.matchMedia?.("(prefers-reduced-motion: reduce)");
     if (motionMedia) {
       const onSystemMotionChange = () => {
@@ -11325,6 +11608,8 @@ void main() {
   };
 
   // src/site/theme/scroll-animation.ts
+  var currentTriggers = [];
+  var initialized = false;
   var applyThemeValues = (targets, themeValues) => {
     gsapWithCSS.to(targets, {
       ...themeValues,
@@ -11341,6 +11626,12 @@ void main() {
   };
   var handleColorThemesReady = () => {
     console.log("[MC Theme] colorThemesReady received");
+    currentTriggers.forEach((trigger) => trigger.kill());
+    currentTriggers = [];
+    if (!window.colorThemes) {
+      console.warn("[MC Theme] colorThemes API not ready");
+      return;
+    }
     const targets = document.querySelectorAll('[mc-theme="target"]');
     console.log("[MC Theme] Targets found:", targets.length, targets);
     if (!targets.length) {
@@ -11361,10 +11652,11 @@ void main() {
         icon,
         values
       });
-      ScrollTrigger2.create({
+      const scrollTrigger = ScrollTrigger2.create({
         trigger,
         start: "top center",
         end: "bottom center",
+        markers: getScrollTriggerDebug(),
         onToggle({ isActive }) {
           console.log(`[MC Theme] Trigger ${index + 1} toggle`, {
             isActive,
@@ -11384,11 +11676,19 @@ void main() {
           applyThemeValues(targets, themeValues);
         }
       });
+      currentTriggers.push(scrollTrigger);
       console.log(`[MC Theme] ScrollTrigger ${index + 1} created`);
     });
   };
   var initThemeScrollAnimation = () => {
+    if (initialized) {
+      return;
+    }
+    initialized = true;
     document.addEventListener("colorThemesReady", handleColorThemesReady);
+    onScrollTriggerDebugChange(() => {
+      handleColorThemesReady();
+    });
   };
 
   // src/site/theme/index.ts

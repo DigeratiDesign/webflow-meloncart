@@ -1,4 +1,9 @@
-import { gsap, ScrollTrigger } from '../core/gsap';
+import {
+  getScrollTriggerDebug,
+  gsap,
+  onScrollTriggerDebugChange,
+  ScrollTrigger,
+} from '../core/gsap';
 import type { MCDebugSchema, MCNamespace } from '../core/types';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -849,7 +854,7 @@ const initSequence = (sequenceElement: HTMLElement) => {
     trigger = ScrollTrigger!.create({
       trigger: sequenceElement,
       start: settings.start,
-      markers: settings.debug,
+      markers: getScrollTriggerDebug(),
       onEnter: () => {
         revealWrappers(instances);
         timeline?.pause(0);
@@ -878,6 +883,19 @@ const initSequence = (sequenceElement: HTMLElement) => {
       return settings[key as keyof typeof settings];
     },
     set(key, value) {
+      if (key === 'start') {
+        const start = String(value || '').trim();
+
+        if (!start) {
+          return;
+        }
+
+        settings.start = start;
+        sequenceElement.setAttribute('mc-chalk-start', settings.start);
+        build();
+        return;
+      }
+
       const number = Number(value);
 
       if (!Number.isFinite(number)) {
@@ -972,6 +990,11 @@ const initSequences = () => {
 
     window.addEventListener('mcMotionPreferenceChange', () => {
       sequenceControllers.forEach((controller) => controller.applyMotionPreference());
+      ScrollTrigger.refresh();
+    });
+
+    onScrollTriggerDebugChange(() => {
+      sequenceControllers.forEach((controller) => controller.rebuild());
       ScrollTrigger.refresh();
     });
 
@@ -1135,6 +1158,13 @@ export const initMCChalk = () => {
             step: 0.01,
             suffix: 's',
             decimals: 2,
+            event: 'change',
+          },
+          {
+            type: 'text',
+            key: 'start',
+            label: 'Start',
+            placeholder: DEFAULTS.start,
             event: 'change',
           },
           {

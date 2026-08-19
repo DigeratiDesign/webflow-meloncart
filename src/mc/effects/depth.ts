@@ -1,4 +1,4 @@
-import { gsap } from '../core/gsap';
+import { getScrollTriggerDebug, gsap, onScrollTriggerDebugChange } from '../core/gsap';
 import type { MCDebugSchema, MCNamespace } from '../core/types';
 
 const SELECTOR = 'img[mc-depth-reveal]';
@@ -24,8 +24,10 @@ const DEFAULTS = {
 };
 
 type GSAPTween = {
+  kill?: () => void;
   scrollTrigger?: {
     refresh: () => void;
+    kill?: () => void;
   };
 };
 
@@ -250,6 +252,8 @@ class MCDepthReveal {
   revealComplete: boolean;
   startTime: number | null;
   frameId: number | null;
+  revealStartFrameId: number | null;
+  revealPlayFrameId: number | null;
   parentPositionChanged: boolean;
   originalParentPosition: string;
   boundPointerMove: (event: PointerEvent) => void;
@@ -308,6 +312,8 @@ class MCDepthReveal {
     this.revealComplete = false;
     this.startTime = null;
     this.frameId = null;
+    this.revealStartFrameId = null;
+    this.revealPlayFrameId = null;
     this.parentPositionChanged = false;
     this.originalParentPosition = '';
     this.boundPointerMove = this.onPointerMove.bind(this);
@@ -420,10 +426,7 @@ class MCDepthReveal {
 
     if (this.canvas) this.canvas.style.display = 'none';
 
-    if (this.frameId !== null) {
-      cancelAnimationFrame(this.frameId);
-      this.frameId = null;
-    }
+    this.cancelScheduledFrames();
 
     this.autoLastTime = null;
   }
@@ -486,6 +489,42 @@ class MCDepthReveal {
     this.image.style.opacity = '0';
     if (this.canvas) this.canvas.style.display = 'block';
     this.startReveal();
+  }
+
+  cancelScheduledFrames() {
+    if (this.frameId !== null) {
+      cancelAnimationFrame(this.frameId);
+      this.frameId = null;
+    }
+
+    if (this.revealStartFrameId !== null) {
+      cancelAnimationFrame(this.revealStartFrameId);
+      this.revealStartFrameId = null;
+    }
+
+    if (this.revealPlayFrameId !== null) {
+      cancelAnimationFrame(this.revealPlayFrameId);
+      this.revealPlayFrameId = null;
+    }
+  }
+
+  resetRevealState() {
+    this.cancelScheduledFrames();
+
+    this.reducedStatic = false;
+    this.startTime = null;
+    this.revealComplete = false;
+    this.pointer.x = 0;
+    this.pointer.y = 0;
+    this.target.x = 0;
+    this.target.y = 0;
+    this.scroll.x = 0;
+    this.scroll.y = 0;
+    this.auto.x = 0;
+    this.auto.y = 0;
+    this.auto.zoom = 0;
+    this.autoElapsed = 0;
+    this.autoLastTime = null;
   }
 
   createCanvas() {
@@ -571,6 +610,10 @@ class MCDepthReveal {
   }
 
   createScrollTracking() {
+    this.scrollTween?.kill?.();
+    this.scrollTween = null;
+    this.scrollTrigger = null;
+
     this.scrollTween = gsap.to(this.scroll, {
       x: this.settings.scrollX,
       y: this.settings.scrollY,
@@ -579,6 +622,7 @@ class MCDepthReveal {
         trigger: this.image.parentElement || this.image,
         start: 'top top',
         end: 'bottom top',
+        markers: getScrollTriggerDebug(),
         scrub: true,
         invalidateOnRefresh: true,
         onUpdate: () => {
@@ -590,6 +634,22 @@ class MCDepthReveal {
     });
 
     this.scrollTrigger = this.scrollTween.scrollTrigger || null;
+  }
+
+  refreshScrollTriggerDebug() {
+    if (!this.effectLoaded) {
+      return;
+    }
+
+    if (!this.scrollTrackingEnabled) {
+      this.scrollTween?.kill?.();
+      this.scrollTween = null;
+      this.scrollTrigger = null;
+      return;
+    }
+
+    this.createScrollTracking();
+    this.scrollTrigger?.refresh();
   }
 
   updateAuto(now: number) {
@@ -1227,28 +1287,19 @@ void main() {
       return;
     }
 
-    this.reducedStatic = false;
-    this.startTime = null;
-    this.revealComplete = false;
-    this.pointer.x = 0;
-    this.pointer.y = 0;
-    this.target.x = 0;
-    this.target.y = 0;
-    this.auto.x = 0;
-    this.auto.y = 0;
-    this.auto.zoom = 0;
-    this.autoElapsed = 0;
-    this.autoLastTime = null;
+    this.resetRevealState();
 
     const now = performance.now();
 
     this.drawFrame(now, 0);
 
-    requestAnimationFrame(() => {
+    this.revealStartFrameId = requestAnimationFrame(() => {
+      this.revealStartFrameId = null;
       if (!this.canvas) return;
       this.canvas.style.opacity = '1';
 
-      requestAnimationFrame((startTime) => {
+      this.revealPlayFrameId = requestAnimationFrame((startTime) => {
+        this.revealPlayFrameId = null;
         this.startTime = startTime;
         this.requestFrame();
       });
@@ -1423,6 +1474,14 @@ void main() {
 }
 
 export const initMCDepth = () => {
+  onScrollTriggerDebugChange(() => {
+    ensureMC()
+      .depth?.filter(Boolean)
+      .forEach((instance) => {
+        instance.refreshScrollTriggerDebug();
+      });
+  });
+
   const motionMedia = window.matchMedia?.('(prefers-reduced-motion: reduce)');
 
   if (motionMedia) {

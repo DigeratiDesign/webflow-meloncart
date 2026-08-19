@@ -1,4 +1,4 @@
-import { gsap, SplitText } from '../core/gsap';
+import { getScrollTriggerDebug, gsap, onScrollTriggerDebugChange, SplitText } from '../core/gsap';
 import type { MCDebugSchema, MCNamespace } from '../core/types';
 
 const SELECTOR = '[mc-colour-reveal]';
@@ -8,6 +8,7 @@ const DEFAULTS = {
   colourDuration: 0.8,
   stagger: 0.8,
   colour: '#ffffff',
+  start: 'top bottom',
 };
 
 type SplitTextResult = InstanceType<typeof SplitText>;
@@ -65,6 +66,7 @@ class MCColourReveal {
     colourDuration: number;
     stagger: number;
     colour: string;
+    start: string;
   };
   split: SplitTextResult | null;
   timeline: GSAPTimeline | null;
@@ -84,6 +86,7 @@ class MCColourReveal {
       ),
       stagger: numberAttribute(component, 'mc-colour-reveal-stagger', DEFAULTS.stagger),
       colour: component.getAttribute('mc-colour-reveal-colour') || DEFAULTS.colour,
+      start: component.getAttribute('mc-colour-reveal-start') || DEFAULTS.start,
     };
 
     this.split = null;
@@ -108,6 +111,23 @@ class MCColourReveal {
 
       this.component.setAttribute('mc-colour-reveal-colour', this.settings.colour);
       this.component.style.setProperty('--mc-colour-reveal', this.settings.colour);
+
+      return;
+    }
+
+    if (key === 'start') {
+      const value = String(rawValue || '').trim();
+
+      if (!value) {
+        return;
+      }
+
+      this.settings.start = value;
+      this.component.setAttribute('mc-colour-reveal-start', this.settings.start);
+
+      if (this.ready && !reducedMotionEnabled()) {
+        void this.buildAnimated(true);
+      }
 
       return;
     }
@@ -209,8 +229,9 @@ class MCColourReveal {
             ? undefined
             : {
                 trigger: this.component,
-                start: 'top bottom',
+                start: this.settings.start,
                 end: 'top 80%',
+                markers: getScrollTriggerDebug(),
                 toggleActions: 'none play none reset',
               },
         });
@@ -270,20 +291,21 @@ class MCColourReveal {
       return;
     }
 
-    if (!this.split || !this.timeline) {
-      await this.buildAnimated(true);
-
-      return;
-    }
-
-    this.component.style.visibility = 'visible';
-    this.timeline.restart(true);
+    await this.buildAnimated(true);
   }
 
   async motionChanged() {
     if (reducedMotionEnabled()) {
       this.showFinal();
 
+      return;
+    }
+
+    await this.buildAnimated(false);
+  }
+
+  async refreshScrollTriggerDebug() {
+    if (reducedMotionEnabled() || !this.ready) {
       return;
     }
 
@@ -350,6 +372,13 @@ export const initMCColourReveal = () => {
         event: 'change',
       },
       {
+        type: 'text',
+        key: 'start',
+        label: 'Start',
+        placeholder: DEFAULTS.start,
+        event: 'change',
+      },
+      {
         type: 'button',
         label: 'Replay',
         action: 'replay',
@@ -358,6 +387,11 @@ export const initMCColourReveal = () => {
   });
 
   window.addEventListener('mcMotionPreferenceChange', updateMotion);
+  onScrollTriggerDebugChange(() => {
+    mc.colourReveal?.forEach((instance) => {
+      void instance.refreshScrollTriggerDebug();
+    });
+  });
 
   const motionMedia = window.matchMedia?.('(prefers-reduced-motion: reduce)');
 

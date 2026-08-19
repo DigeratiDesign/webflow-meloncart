@@ -1,6 +1,14 @@
 /* eslint-disable no-console */
-import { gsap, ScrollTrigger } from '../../mc/core/gsap';
+import {
+  getScrollTriggerDebug,
+  gsap,
+  onScrollTriggerDebugChange,
+  ScrollTrigger,
+} from '../../mc/core/gsap';
 import type { ColorThemeValues } from '../../mc/core/types';
+
+let currentTriggers: ScrollTrigger[] = [];
+let initialized = false;
 
 const applyThemeValues = (targets: NodeListOf<Element>, themeValues: ColorThemeValues): void => {
   gsap.to(targets, {
@@ -19,6 +27,14 @@ const applyThemeValues = (targets: NodeListOf<Element>, themeValues: ColorThemeV
 
 const handleColorThemesReady = (): void => {
   console.log('[MC Theme] colorThemesReady received');
+
+  currentTriggers.forEach((trigger) => trigger.kill());
+  currentTriggers = [];
+
+  if (!window.colorThemes) {
+    console.warn('[MC Theme] colorThemes API not ready');
+    return;
+  }
 
   const targets = document.querySelectorAll('[mc-theme="target"]');
 
@@ -48,10 +64,11 @@ const handleColorThemesReady = (): void => {
       values,
     });
 
-    ScrollTrigger.create({
+    const scrollTrigger = ScrollTrigger.create({
       trigger,
       start: 'top center',
       end: 'bottom center',
+      markers: getScrollTriggerDebug(),
       onToggle({ isActive }) {
         console.log(`[MC Theme] Trigger ${index + 1} toggle`, {
           isActive,
@@ -78,10 +95,20 @@ const handleColorThemesReady = (): void => {
       },
     });
 
+    currentTriggers.push(scrollTrigger);
+
     console.log(`[MC Theme] ScrollTrigger ${index + 1} created`);
   });
 };
 
 export const initThemeScrollAnimation = (): void => {
+  if (initialized) {
+    return;
+  }
+
+  initialized = true;
   document.addEventListener('colorThemesReady', handleColorThemesReady);
+  onScrollTriggerDebugChange(() => {
+    handleColorThemesReady();
+  });
 };

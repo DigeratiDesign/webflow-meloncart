@@ -1,4 +1,9 @@
-import { gsap, ScrollTrigger } from '../core/gsap';
+import {
+  getScrollTriggerDebug,
+  gsap,
+  onScrollTriggerDebugChange,
+  ScrollTrigger,
+} from '../core/gsap';
 import type { MCDebugSchema, MCNamespace } from '../core/types';
 
 const DEFAULT_DURATION = 1;
@@ -639,7 +644,7 @@ const createSequenceController = (section: HTMLElement, sectionIndex: number) =>
       id: `mc-illustration-sequence-${sectionIndex + 1}`,
       trigger: section,
       start: settings.start,
-      markers: settings.debug,
+      markers: getScrollTriggerDebug(),
       onEnter: () => {
         master?.play(0);
       },
@@ -672,6 +677,19 @@ const createSequenceController = (section: HTMLElement, sectionIndex: number) =>
       return settings[key as keyof SequenceSettings];
     },
     set(key, rawValue) {
+      if (key === 'start') {
+        const value = String(rawValue || '').trim();
+
+        if (!value) {
+          return;
+        }
+
+        settings.start = value;
+        section.setAttribute('mc-illustration-start', settings.start);
+        rebuild();
+        return;
+      }
+
       const value = Number(rawValue);
 
       if (!Number.isFinite(value)) {
@@ -773,6 +791,13 @@ const initIllustrationSequences = () => {
         event: 'change',
       },
       {
+        type: 'text',
+        key: 'start',
+        label: 'Start',
+        placeholder: DEFAULT_START,
+        event: 'change',
+      },
+      {
         type: 'button',
         label: 'Replay',
         action: 'replay',
@@ -789,6 +814,7 @@ const rebuildAllSequences = () => {
 
 export const initMCIllustration = () => {
   window.addEventListener('mcMotionPreferenceChange', rebuildAllSequences);
+  onScrollTriggerDebugChange(rebuildAllSequences);
 
   const motionMedia = window.matchMedia?.('(prefers-reduced-motion: reduce)');
 
