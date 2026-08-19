@@ -64,6 +64,15 @@ export type MCDebugAPI = {
   close: () => void;
 };
 
+export type ColorThemeValues = Record<string, string>;
+
+export type ColorThemesAPI = {
+  themes: Record<string, ColorThemeValues>;
+  ctaThemes: Record<string, ColorThemeValues>;
+  iconThemes: Record<string, ColorThemeValues>;
+  getTheme: (featureName?: string, ctaName?: string, iconName?: string) => ColorThemeValues;
+};
+
 export type MCNamespace = {
   motion?: MCMotionAPI;
   debug?: MCDebugAPI;
@@ -73,5 +82,6 @@ export type MCNamespace = {
 declare global {
   interface Window {
     MC: MCNamespace;
+    colorThemes: ColorThemesAPI;
   }
 }
