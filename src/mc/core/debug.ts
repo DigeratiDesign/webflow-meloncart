@@ -11,6 +11,10 @@ import type {
 } from './types';
 
 const CSS = `
+    :root{
+      --mc-debug-accent:#00ffff;
+      --mc-debug-accent-rgb:0,255,255
+    }
     #mc-debug-panel{
       position:fixed;top:16px;right:16px;z-index:2147483647;
       display:flex;flex-direction:column;
@@ -23,10 +27,10 @@ const CSS = `
     }
     #mc-debug-panel *{box-sizing:border-box}
     .mc-debug-brand{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-14px -14px 16px;padding:10px 14px 12px;border-bottom:1px solid rgba(255,255,255,.12)}
-    .mc-debug-logo{display:block;width:50px;height:auto}
+    .mc-debug-logo{display:block;width:50px;height:auto;color:var(--mc-debug-accent)}
     .mc-debug-content{flex:1 1 auto;min-height:0;overflow-y:auto;padding-right:2px}
     .mc-debug-global{margin-bottom:10px;padding:0 0 10px;border-bottom:1px solid rgba(255,255,255,.12)}
-    .mc-debug-global-title,.mc-debug-group-title{margin-bottom:9px;color:#00ffff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+    .mc-debug-global-title,.mc-debug-group-title{margin-bottom:9px;color:var(--mc-debug-accent);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
     .mc-debug-global-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end}
     .mc-debug-global-block{min-width:0}
     .mc-debug-global-block.is-align-right{text-align:right}
@@ -35,10 +39,10 @@ const CSS = `
     .mc-debug-segmented.is-two-up{grid-template-columns:repeat(2,minmax(42px,1fr))}
     .mc-debug-segmented button{appearance:none;border:0;border-radius:4px;padding:5px 6px;background:transparent;color:rgba(255,255,255,.55);font:600 9px/1 'Poppins',Arial,Helvetica,sans-serif;cursor:pointer}
     .mc-debug-segmented button:hover{color:#fff;background:rgba(255,255,255,.06)}
-    .mc-debug-segmented button.is-active{color:#2a2722;background:#00ffff;font-weight:700}
-    .mc-debug-global-icon{appearance:none;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:22px;height:22px;padding:0;border:1px solid rgba(0,255,255,.5);border-radius:999px;background:transparent;color:#00ffff;cursor:pointer}
-    .mc-debug-global-icon:hover{background:rgba(0,255,255,.14);border-color:#00ffff;color:#00ffff}
-    .mc-debug-global-icon:focus-visible{outline:2px solid #00ffff;outline-offset:3px}
+    .mc-debug-segmented button.is-active{color:#2a2722;background:var(--mc-debug-accent);font-weight:700}
+    .mc-debug-global-icon{appearance:none;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:22px;height:22px;padding:0;border:1px solid rgba(var(--mc-debug-accent-rgb),.5);border-radius:999px;background:transparent;color:var(--mc-debug-accent);cursor:pointer}
+    .mc-debug-global-icon:hover{background:rgba(var(--mc-debug-accent-rgb),.14);border-color:var(--mc-debug-accent);color:var(--mc-debug-accent)}
+    .mc-debug-global-icon:focus-visible{outline:2px solid var(--mc-debug-accent);outline-offset:3px}
     .mc-debug-global-icon svg{display:block;width:13px;height:13px}
     .mc-debug-global-icon .mc-debug-disclosure-icon{width:16px;height:16px;transition:transform .18s ease}
     .mc-debug-global-icon[data-expanded="true"] .mc-debug-disclosure-icon{transform:rotate(90deg)}
@@ -50,15 +54,15 @@ const CSS = `
     .mc-debug-section-head[data-open="true"]{background:rgba(255,255,255,.06)}
     .mc-debug-disclosure{appearance:none;display:flex;align-items:center;justify-content:space-between;flex:1;min-width:0;padding:0;border:0;background:none;color:inherit;font:inherit;cursor:pointer;text-align:left}
     .mc-debug-disclosure:hover .mc-debug-title,.mc-debug-disclosure:focus-visible .mc-debug-title{color:#fff}
-    .mc-debug-disclosure:focus-visible,.mc-debug-icon-button:focus-visible{outline:2px solid #00ffff;outline-offset:3px;border-radius:6px}
+    .mc-debug-disclosure:focus-visible,.mc-debug-icon-button:focus-visible{outline:2px solid var(--mc-debug-accent);outline-offset:3px;border-radius:6px}
     .mc-debug-disclosure-copy{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
-    .mc-debug-disclosure-icon{display:flex;align-items:center;justify-content:center;flex:0 0 auto;width:16px;height:16px;color:#00ffff;transition:transform .18s ease}
+    .mc-debug-disclosure-icon{display:flex;align-items:center;justify-content:center;flex:0 0 auto;width:16px;height:16px;color:var(--mc-debug-accent);transition:transform .18s ease}
     .mc-debug-disclosure[aria-expanded="true"] .mc-debug-disclosure-icon{transform:rotate(90deg)}
     .mc-debug-title{min-width:0;flex:1;color:rgba(255,255,255,.9);font-weight:700}
     .mc-debug-section-body[hidden]{display:none}
     .mc-debug-section-body{padding:6px 10px 0}
-    .mc-debug-icon-button{appearance:none;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:22px;height:22px;padding:0;border:0;border-radius:999px;background:transparent;color:#00ffff;cursor:pointer}
-    .mc-debug-icon-button:hover{background:rgba(0,255,255,.14);color:#00ffff}
+    .mc-debug-icon-button{appearance:none;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:22px;height:22px;padding:0;border:0;border-radius:999px;background:transparent;color:var(--mc-debug-accent);cursor:pointer}
+    .mc-debug-icon-button:hover{background:rgba(var(--mc-debug-accent-rgb),.14);color:var(--mc-debug-accent)}
     .mc-debug-icon-button svg{display:block;width:13px;height:13px}
     .mc-debug-stats{display:grid;grid-template-columns:1fr auto;gap:5px 12px;margin:-3px 0 16px;padding:10px;background:rgba(255,255,255,.055);border-radius:6px;color:rgba(255,255,255,.64);font-size:10px}
     .mc-debug-stats strong{color:#fff;font-weight:600;font-variant-numeric:tabular-nums}
@@ -67,22 +71,24 @@ const CSS = `
     .mc-debug-section-body>.mc-debug-control:first-child{margin-top:6px}
     .mc-debug-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:7px}
     .mc-debug-label{color:rgba(255,255,255,.82)}
-    .mc-debug-value{color:#00ffff;font-variant-numeric:tabular-nums}
+    .mc-debug-value{color:var(--mc-debug-accent);font-variant-numeric:tabular-nums}
     .mc-debug-control input[type=range]{--mc-range-progress:50%;-webkit-appearance:none;appearance:none;display:block;width:100%;height:16px;margin:0;background:transparent;cursor:pointer}
-    .mc-debug-control input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:999px;background:linear-gradient(to right,#00ffff 0%,#00ffff var(--mc-range-progress),rgba(255,255,255,.14) var(--mc-range-progress),rgba(255,255,255,.14) 100%)}
-    .mc-debug-control input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;margin-top:-5px;border:2px solid #2a2722;border-radius:50%;background:#00ffff;box-shadow:0 0 0 1px #00ffff}
+    .mc-debug-control input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:999px;background:linear-gradient(to right,var(--mc-debug-accent) 0%,var(--mc-debug-accent) var(--mc-range-progress),rgba(255,255,255,.14) var(--mc-range-progress),rgba(255,255,255,.14) 100%)}
+    .mc-debug-control input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;margin-top:-5px;border:2px solid #2a2722;border-radius:50%;background:var(--mc-debug-accent);box-shadow:0 0 0 1px var(--mc-debug-accent)}
     .mc-debug-control input[type=range]::-moz-range-track{height:4px;border-radius:999px;background:rgba(255,255,255,.14)}
-    .mc-debug-control input[type=range]::-moz-range-progress{height:4px;border-radius:999px;background:#00ffff}
-    .mc-debug-control input[type=range]::-moz-range-thumb{width:14px;height:14px;border:2px solid #2a2722;border-radius:50%;background:#00ffff}
+    .mc-debug-control input[type=range]::-moz-range-progress{height:4px;border-radius:999px;background:var(--mc-debug-accent)}
+    .mc-debug-control input[type=range]::-moz-range-thumb{width:14px;height:14px;border:2px solid #2a2722;border-radius:50%;background:var(--mc-debug-accent)}
     .mc-debug-text{appearance:none;display:block;width:100%;padding:8px 10px;border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(255,255,255,.04);color:#fff;font:500 11px/1.3 'Poppins',Arial,Helvetica,sans-serif}
     .mc-debug-text::placeholder{color:rgba(255,255,255,.35)}
     .mc-debug-text:hover{border-color:rgba(255,255,255,.22)}
-    .mc-debug-text:focus-visible{outline:2px solid #00ffff;outline-offset:2px;border-color:#00ffff}
-    .mc-debug-button{appearance:none;width:100%;margin-top:14px;padding:9px 12px;border:1px solid #00ffff;border-radius:6px;background:transparent;color:#00ffff;font:600 10px/1 'Poppins',Arial,Helvetica,sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
-    .mc-debug-button:hover{background:#00ffff;color:#2a2722}
+    .mc-debug-text:focus-visible{outline:2px solid var(--mc-debug-accent);outline-offset:2px;border-color:var(--mc-debug-accent)}
+    .mc-debug-button{appearance:none;width:100%;margin-top:14px;padding:9px 12px;border:1px solid var(--mc-debug-accent);border-radius:6px;background:transparent;color:var(--mc-debug-accent);font:600 10px/1 'Poppins',Arial,Helvetica,sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+    .mc-debug-button:hover{background:var(--mc-debug-accent);color:#2a2722}
     .mc-debug-button:active{transform:translateY(1px)}
     .mc-debug-status{margin-bottom:12px;padding:10px;background:rgba(255,255,255,.06);border-radius:6px;color:rgba(255,255,255,.65);white-space:pre-wrap}
   `;
+
+const BRAND_SPOT_COLOURS = ['#00FF00', '#FF00FF', '#FF6600', '#FFFF00', '#00FFFF'] as const;
 
 const ensureMC = (): MCNamespace => {
   window.MC ||= {};
@@ -187,6 +193,34 @@ export const initMCDebug = () => {
 
   let panel: HTMLDivElement | null = null;
   let isOpen = false;
+
+  const setAccentColour = (hex: string) => {
+    const normalized = hex.startsWith('#') ? hex : `#${hex}`;
+    const value = normalized.slice(1);
+
+    if (value.length !== 6) {
+      return;
+    }
+
+    const r = Number.parseInt(value.slice(0, 2), 16);
+    const g = Number.parseInt(value.slice(2, 4), 16);
+    const b = Number.parseInt(value.slice(4, 6), 16);
+
+    if ([r, g, b].some((channel) => Number.isNaN(channel))) {
+      return;
+    }
+
+    document.documentElement.style.setProperty('--mc-debug-accent', normalized);
+    document.documentElement.style.setProperty('--mc-debug-accent-rgb', `${r}, ${g}, ${b}`);
+  };
+
+  const applyRandomAccentColour = () => {
+    const colour =
+      BRAND_SPOT_COLOURS[Math.floor(Math.random() * BRAND_SPOT_COLOURS.length)] ||
+      BRAND_SPOT_COLOURS[0];
+
+    setAccentColour(colour);
+  };
 
   const syncAccordionButton = () => {
     if (!panel) {
@@ -742,8 +776,8 @@ export const initMCDebug = () => {
     panel.innerHTML = `
       <div class="mc-debug-brand">
         <svg class="mc-debug-logo" viewBox="0 0 83 71" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Digerati eye">
-          <path d="M75.0347 71L70.1372 66.7991C68.5397 65.4288 66.5009 64.675 64.3919 64.675H3.66905L9.78491 62.544C11.7729 61.8513 13.4453 60.472 14.4984 58.6566L44.7876 6.44199L43.638 12.7097C43.2632 14.7533 43.6304 16.863 44.674 18.662L75.0347 71ZM41.1864 0L0 71H82.3729L41.1864 0Z" fill="#00FFFF"/>
-          <path d="M41.1864 50.5709C43.1753 50.5709 44.7876 48.9662 44.7876 46.9868C44.7876 45.0073 43.1753 43.4026 41.1864 43.4026C39.1976 43.4026 37.5853 45.0073 37.5853 46.9868C37.5853 48.9662 39.1976 50.5709 41.1864 50.5709Z" fill="#00FFFF"/>
+          <path d="M75.0347 71L70.1372 66.7991C68.5397 65.4288 66.5009 64.675 64.3919 64.675H3.66905L9.78491 62.544C11.7729 61.8513 13.4453 60.472 14.4984 58.6566L44.7876 6.44199L43.638 12.7097C43.2632 14.7533 43.6304 16.863 44.674 18.662L75.0347 71ZM41.1864 0L0 71H82.3729L41.1864 0Z" fill="currentColor"/>
+          <path d="M41.1864 50.5709C43.1753 50.5709 44.7876 48.9662 44.7876 46.9868C44.7876 45.0073 43.1753 43.4026 41.1864 43.4026C39.1976 43.4026 37.5853 45.0073 37.5853 46.9868C37.5853 48.9662 39.1976 50.5709 41.1864 50.5709Z" fill="currentColor"/>
           <path d="M41.1864 58.2798C30.0578 58.2798 23.6153 48.9754 23.3464 48.5795L24.2635 46.8092L23.3464 45.039C23.6153 44.6431 30.0578 35.3387 41.1864 35.3387C52.3151 35.3387 58.7576 44.6431 59.0264 45.039L58.1094 46.8092L59.0264 48.5795C58.7576 48.9754 52.3151 58.2798 41.1864 58.2798ZM24.2635 46.8097C26.2639 48.8589 36.0107 51.9549 41.1864 51.9549C46.3594 51.9549 56.1057 48.8618 58.1094 46.8092C56.1057 44.7567 46.3594 41.6636 41.1864 41.6636C36.0131 41.6636 26.2669 44.7571 24.2635 46.8097Z" fill="white"/>
         </svg>
         <div class="mc-debug-brand-actions"></div>
@@ -759,6 +793,7 @@ export const initMCDebug = () => {
   const open = () => {
     createPanel();
     isOpen = true;
+    applyRandomAccentColour();
     if (panel) {
       panel.style.display = 'flex';
     }
