@@ -1,3 +1,4 @@
+import { gsap, SplitText } from '../core/gsap';
 import type { MCDebugSchema, MCNamespace } from '../core/types';
 
 const SELECTOR = '[mc-colour-reveal]';
@@ -9,49 +10,7 @@ const DEFAULTS = {
   colour: '#ffffff',
 };
 
-type SplitTextResult = {
-  lines: HTMLElement[];
-  revert: () => void;
-};
-
-type SplitTextCreateConfig = {
-  type: 'lines';
-  autoSplit: true;
-  mask: 'lines';
-  linesClass: 'line';
-  onSplit: (self: SplitTextResult) => GSAPTimeline;
-};
-
-type GSAPTimeline = {
-  scrollTrigger?: {
-    kill: () => void;
-  };
-  set: (target: unknown, vars: Record<string, unknown>) => GSAPTimeline;
-  fromTo: (
-    target: unknown,
-    fromVars: Record<string, unknown>,
-    toVars: Record<string, unknown>,
-    position?: number
-  ) => GSAPTimeline;
-  play: (position?: number) => GSAPTimeline;
-  restart: (includeDelay?: boolean) => GSAPTimeline;
-  kill: () => void;
-};
-
-declare const gsap:
-  | {
-      timeline: (config?: Record<string, unknown>) => GSAPTimeline;
-      registerPlugin: (...plugins: unknown[]) => void;
-    }
-  | undefined;
-
-declare const ScrollTrigger: unknown;
-
-declare const SplitText:
-  | {
-      create: (element: HTMLElement, config: SplitTextCreateConfig) => SplitTextResult;
-    }
-  | undefined;
+type SplitTextResult = InstanceType<typeof SplitText>;
 
 type MCColourRevealInstance = MCColourReveal;
 
@@ -238,7 +197,7 @@ class MCColourReveal {
     this.component.style.removeProperty('--clip-progress');
     this.component.style.removeProperty('--color-progress');
 
-    this.split = SplitText!.create(this.component, {
+    this.split = SplitText.create(this.component, {
       type: 'lines',
       autoSplit: true,
       mask: 'lines',
@@ -417,24 +376,6 @@ export const initMCColourReveal = () => {
   }
 
   const init = async () => {
-    if (
-      typeof gsap === 'undefined' ||
-      typeof ScrollTrigger === 'undefined' ||
-      typeof SplitText === 'undefined'
-    ) {
-      console.error('[MC Colour Reveal] GSAP, ScrollTrigger and SplitText must be loaded.');
-
-      document.querySelectorAll<HTMLElement>(SELECTOR).forEach((component) => {
-        component.style.visibility = 'visible';
-        component.style.setProperty('--clip-progress', '100%');
-        component.style.setProperty('--color-progress', '0%');
-      });
-
-      return;
-    }
-
-    gsap.registerPlugin(ScrollTrigger, SplitText);
-
     const components = [...document.querySelectorAll<HTMLElement>(SELECTOR)];
 
     components.forEach((component, index) => {

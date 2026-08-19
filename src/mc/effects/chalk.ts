@@ -1,3 +1,4 @@
+import { gsap, ScrollTrigger } from '../core/gsap';
 import type { MCDebugSchema, MCNamespace } from '../core/types';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -19,30 +20,6 @@ const DEFAULTS = {
   stagger: 0.12,
   debug: false,
 };
-
-type GSAPTimeline = {
-  to: (target: unknown, vars: Record<string, unknown>, position?: number | string) => GSAPTimeline;
-  pause: (position?: number) => GSAPTimeline;
-  restart: () => GSAPTimeline;
-  kill: () => void;
-};
-
-type GSAPStatic = {
-  registerPlugin: (...plugins: unknown[]) => void;
-  timeline: (config?: Record<string, unknown>) => GSAPTimeline;
-};
-
-type ScrollTriggerInstance = {
-  kill: () => void;
-};
-
-type ScrollTriggerStatic = {
-  create: (config: Record<string, unknown>) => ScrollTriggerInstance;
-  refresh: () => void;
-};
-
-declare const gsap: GSAPStatic | undefined;
-declare const ScrollTrigger: ScrollTriggerStatic | undefined;
 
 type ChalkStamp = {
   path: string;
@@ -834,7 +811,7 @@ const initSequence = (sequenceElement: HTMLElement) => {
   }
 
   let timeline: GSAPTimeline | null = null;
-  let trigger: ScrollTriggerInstance | null = null;
+  let trigger: ScrollTrigger | null = null;
 
   const build = () => {
     if (timeline) {
@@ -973,18 +950,6 @@ const initSequence = (sequenceElement: HTMLElement) => {
 };
 
 const initSequences = () => {
-  if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
-    console.error('[MC Chalk] GSAP and ScrollTrigger must be loaded.');
-
-    [...chalkInstances.values()].forEach((instance) => {
-      showInstance(instance);
-      revealWrapper(instance);
-    });
-
-    return;
-  }
-
-  gsap.registerPlugin(ScrollTrigger);
   sequenceControllers.length = 0;
 
   const sequences = [...document.querySelectorAll<HTMLElement>(SEQUENCE_SELECTOR)];

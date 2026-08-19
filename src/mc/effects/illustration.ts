@@ -1,36 +1,10 @@
+import { gsap, ScrollTrigger } from '../core/gsap';
 import type { MCDebugSchema, MCNamespace } from '../core/types';
 
 const DEFAULT_DURATION = 1;
 const DEFAULT_START = 'top 75%';
 const DEFAULT_STAGGER = 0.25;
 const EASE = 'power3.out';
-
-type GSAPTimeline = {
-  to: (target: unknown, vars: Record<string, unknown>, position?: number | string) => GSAPTimeline;
-  add: (timeline: GSAPTimeline, position?: number | string) => GSAPTimeline;
-  pause: (position?: number) => GSAPTimeline;
-  play: (position?: number) => GSAPTimeline;
-  progress: (value: number) => GSAPTimeline;
-  kill: () => void;
-};
-
-type GSAPStatic = {
-  registerPlugin: (...plugins: unknown[]) => void;
-  set: (target: unknown, vars: Record<string, unknown>) => void;
-  timeline: (config?: Record<string, unknown>) => GSAPTimeline;
-};
-
-type ScrollTriggerInstance = {
-  kill: () => void;
-};
-
-type ScrollTriggerStatic = {
-  create: (config: Record<string, unknown>) => ScrollTriggerInstance;
-  refresh: () => void;
-};
-
-declare const gsap: GSAPStatic;
-declare const ScrollTrigger: ScrollTriggerStatic;
 
 type SequenceSettings = {
   duration: number;
@@ -613,7 +587,7 @@ const createSequenceController = (section: HTMLElement, sectionIndex: number) =>
   const illustrations = [...section.querySelectorAll<HTMLElement>('[mc-illustration]')];
 
   let master: GSAPTimeline | null = null;
-  let trigger: ScrollTriggerInstance | null = null;
+  let trigger: ScrollTrigger | null = null;
 
   const kill = () => {
     if (master) {
@@ -644,21 +618,22 @@ const createSequenceController = (section: HTMLElement, sectionIndex: number) =>
 
     illustrations.forEach(prepareIllustration);
 
-    master = gsap.timeline({
+    const masterTimeline = gsap.timeline({
       paused: true,
     });
+    master = masterTimeline;
 
     illustrations.forEach((element, index) => {
       const timeline = createIllustrationTimeline(element, settings.duration);
 
-      if (!timeline || !master) {
+      if (!timeline) {
         return;
       }
 
-      master.add(timeline, index * settings.stagger);
+      masterTimeline.add(timeline, index * settings.stagger);
     });
 
-    master.pause(0);
+    masterTimeline.pause(0);
 
     trigger = ScrollTrigger.create({
       id: `mc-illustration-sequence-${sectionIndex + 1}`,
@@ -813,8 +788,6 @@ const rebuildAllSequences = () => {
 };
 
 export const initMCIllustration = () => {
-  gsap.registerPlugin(ScrollTrigger);
-
   window.addEventListener('mcMotionPreferenceChange', rebuildAllSequences);
 
   const motionMedia = window.matchMedia?.('(prefers-reduced-motion: reduce)');

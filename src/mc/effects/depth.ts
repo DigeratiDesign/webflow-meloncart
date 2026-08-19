@@ -1,3 +1,4 @@
+import { gsap } from '../core/gsap';
 import type { MCDebugSchema, MCNamespace } from '../core/types';
 
 const SELECTOR = 'img[mc-depth-reveal]';
@@ -28,17 +29,7 @@ type GSAPTween = {
   };
 };
 
-type GSAPStatic = {
-  registerPlugin: (...plugins: unknown[]) => void;
-  to: (target: object, vars: Record<string, unknown>) => GSAPTween;
-};
-
 declare global {
-  interface Window {
-    gsap?: GSAPStatic;
-    ScrollTrigger?: unknown;
-  }
-
   interface HTMLImageElement {
     __mcDepthReveal?: MCDepthReveal;
   }
@@ -580,15 +571,7 @@ class MCDepthReveal {
   }
 
   createScrollTracking() {
-    if (!window.gsap || !window.ScrollTrigger) {
-      // eslint-disable-next-line no-console
-      console.warn('[MC Depth] Scroll tracking requested but GSAP/ScrollTrigger unavailable.');
-      return;
-    }
-
-    window.gsap.registerPlugin(window.ScrollTrigger);
-
-    this.scrollTween = window.gsap.to(this.scroll, {
+    this.scrollTween = gsap.to(this.scroll, {
       x: this.settings.scrollX,
       y: this.settings.scrollY,
       ease: 'none',

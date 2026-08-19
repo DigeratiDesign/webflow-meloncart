@@ -1,25 +1,9 @@
 /* eslint-disable no-console */
+import { gsap, ScrollTrigger } from '../../mc/core/gsap';
 import type { ColorThemeValues } from '../../mc/core/types';
 
-type GSAPLike = {
-  registerPlugin: (plugin: unknown) => void;
-  to: (targets: NodeListOf<Element>, vars: Record<string, unknown>) => void;
-};
-
-type ScrollTriggerLike = {
-  create: (config: {
-    trigger: Element;
-    start: string;
-    end: string;
-    onToggle: (state: { isActive: boolean }) => void;
-  }) => void;
-};
-
-declare const gsap: GSAPLike | undefined;
-declare const ScrollTrigger: ScrollTriggerLike | undefined;
-
 const applyThemeValues = (targets: NodeListOf<Element>, themeValues: ColorThemeValues): void => {
-  gsap?.to(targets, {
+  gsap.to(targets, {
     ...themeValues,
     duration: 0.5,
     ease: 'power1.out',
@@ -35,20 +19,6 @@ const applyThemeValues = (targets: NodeListOf<Element>, themeValues: ColorThemeV
 
 const handleColorThemesReady = (): void => {
   console.log('[MC Theme] colorThemesReady received');
-
-  if (typeof gsap === 'undefined') {
-    console.error('[MC Theme] GSAP not loaded');
-
-    return;
-  }
-
-  if (typeof ScrollTrigger === 'undefined') {
-    console.error('[MC Theme] ScrollTrigger not loaded');
-
-    return;
-  }
-
-  gsap.registerPlugin(ScrollTrigger);
 
   const targets = document.querySelectorAll('[mc-theme="target"]');
 
