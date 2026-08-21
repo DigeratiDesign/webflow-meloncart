@@ -1,13 +1,15 @@
+import { waitForFonts } from '../../digerati/core/fonts';
 import {
   getScrollTriggerDebug,
   gsap,
   onScrollTriggerDebugChange,
   SplitText,
 } from '../../digerati/core/gsap';
-import { createLogger } from '../../digerati/core/logger';
+import { createLogger, isMCDebugEnabled } from '../../digerati/core/logger';
 import type { MCDebugSchema, MCNamespace } from '../../digerati/core/types';
 
 const SELECTOR = '[mc-colour-reveal]';
+const OWNER_ATTRIBUTE = 'mc-animation-owner';
 
 const DEFAULTS = {
   duration: 0.8,
@@ -16,9 +18,14 @@ const DEFAULTS = {
   colour: '#ffffff',
   start: 'top bottom',
 };
-const logger = createLogger('melon', 'colour-reveal');
+const logger = createLogger('melon', 'colour-reveal', { debug: isMCDebugEnabled });
 
 type SplitTextResult = InstanceType<typeof SplitText>;
+type TimelineBuildResult = {
+  timeline: GSAPTimeline | null;
+  lastLineStart: number;
+  lastLineDuration: number;
+};
 type BuildTimelineOptions = {
   attachScrollTrigger: boolean;
   paused: boolean;
@@ -82,6 +89,7 @@ class MCColourReveal {
   };
   split: SplitTextResult | null;
   timeline: GSAPTimeline | null;
+  lastLineStart: number;
   ready: boolean;
   initialising: boolean;
 
@@ -103,10 +111,15 @@ class MCColourReveal {
 
     this.split = null;
     this.timeline = null;
+    this.lastLineStart = 0;
     this.ready = false;
     this.initialising = false;
 
     this.component.style.setProperty('--mc-colour-reveal', this.settings.colour);
+  }
+
+  get parentOwned() {
+    return this.component.hasAttribute(OWNER_ATTRIBUTE);
   }
 
   get(key: string) {
@@ -234,24 +247,34 @@ class MCColourReveal {
     attachScrollTrigger,
     paused,
     playImmediately,
-  }: BuildTimelineOptions): Promise<GSAPTimeline | null> {
+  }: BuildTimelineOptions): Promise<TimelineBuildResult> {
     if (this.initialising) {
-      return this.timeline;
+      logger.debug('Build already in progress', { element: this.component });
+      return {
+        timeline: this.timeline,
+        lastLineStart: this.lastLineStart,
+        lastLineDuration: Math.max(this.settings.duration, 0.2 + this.settings.colourDuration),
+      };
     }
 
     this.initialising = true;
+    logger.debug('Building animation', {
+      element: this.component,
+      parentOwned: this.parentOwned,
+      attachScrollTrigger,
+      paused,
+    });
 
     this.destroyAnimation();
 
-    if (document.fonts?.ready) {
-      await document.fonts.ready;
-    }
+    await waitForFonts();
+    logger.debug('Fonts ready or timed out', { element: this.component });
 
     if (reducedMotionEnabled()) {
       this.initialising = false;
       this.showFinal();
 
-      return null;
+      return { timeline: null, lastLineStart: 0, lastLineDuration: 0 };
     }
 
     this.component.style.setProperty('--mc-colour-reveal', this.settings.colour);
@@ -264,6 +287,7 @@ class MCColourReveal {
       mask: 'lines',
       linesClass: 'line',
       onSplit: (self) => {
+        this.lastLineStart = self.lines.length > 1 ? this.settings.stagger : 0;
         const timeline = this.createGSAPTimeline({
           attachScrollTrigger,
           paused,
@@ -315,15 +339,20 @@ class MCColourReveal {
 
     this.ready = true;
     this.initialising = false;
+    logger.debug('Animation built', { element: this.component, timeline: this.timeline });
 
-    return this.timeline;
+    return {
+      timeline: this.timeline,
+      lastLineStart: this.lastLineStart,
+      lastLineDuration: Math.max(this.settings.duration, 0.2 + this.settings.colourDuration),
+    };
   }
 
   /**
    * Creates a paused colour reveal timeline without its standalone ScrollTrigger.
    * A parent GSAP timeline can add and own this returned animation.
    */
-  async createTimeline(): Promise<GSAPTimeline | null> {
+  async createTimeline(): Promise<TimelineBuildResult> {
     return this.buildAnimated({
       attachScrollTrigger: false,
       paused: true,
@@ -349,6 +378,10 @@ class MCColourReveal {
     if (reducedMotionEnabled()) {
       this.showFinal();
 
+      return;
+    }
+
+    if (this.parentOwned) {
       return;
     }
 
@@ -378,6 +411,11 @@ class MCColourReveal {
       return;
     }
 
+    if (this.parentOwned) {
+      logger.debug('Standalone initialisation deferred to parent', { element: this.component });
+      return;
+    }
+
     await this.buildAnimated({
       attachScrollTrigger: true,
       paused: false,
@@ -402,7 +440,9 @@ export const initMCColourReveal = () => {
     id: 'colourReveal',
     label: 'Colour Reveal',
     instances: () => ensureMC().colourReveal || [],
-    instanceLabel: (_instance, index, total) => (total > 1 ? `Heading ${index + 1}` : 'Heading'),
+    orderElement: () => ensureMC().colourReveal?.[0]?.component || null,
+    instanceLabel: (instance) =>
+      (instance as MCColourReveal).component.textContent?.replace(/\s+/g, ' ').trim() || 'Heading',
     controls: [
       {
         type: 'text',

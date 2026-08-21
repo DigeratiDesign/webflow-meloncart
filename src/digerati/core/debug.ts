@@ -8,6 +8,7 @@ import type {
   MCNamespace,
   MCRangeControl,
   MCTextControl,
+  MCToggleControl,
   MotionMode,
 } from './types';
 
@@ -27,9 +28,20 @@ const CSS = `
       -webkit-font-smoothing:antialiased
     }
     #mc-debug-panel *{box-sizing:border-box}
-    .mc-debug-brand{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-14px -14px 16px;padding:10px 14px 12px;border-bottom:1px solid rgba(255,255,255,.12)}
+    .mc-debug-brand{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-14px -14px 16px;padding:10px 14px 12px;border-bottom:1px solid rgba(255,255,255,.12);cursor:grab;touch-action:none;user-select:none}
+    .mc-debug-brand:active{cursor:grabbing}
     .mc-debug-logo{display:block;width:50px;height:auto;color:var(--mc-debug-accent)}
+    .mc-debug-page{display:block;flex:1;min-width:0;overflow:hidden;color:rgba(255,255,255,.92);font-size:11px;font-weight:700;letter-spacing:.04em;text-overflow:ellipsis;white-space:nowrap}
+    .mc-debug-page::before{display:block;margin-bottom:3px;color:var(--mc-debug-accent);content:'PAGE';font-size:8px;font-weight:700;letter-spacing:.12em}
     .mc-debug-content{flex:1 1 auto;min-height:0;overflow-y:auto;padding-right:2px}
+    .mc-debug-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px -14px -14px;padding:10px 14px;border-top:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);font-size:9px;font-weight:600;letter-spacing:.04em}
+    .mc-debug-footer-actions{display:flex;align-items:center;gap:5px}
+    .mc-debug-export{appearance:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:1px solid rgba(var(--mc-debug-accent-rgb),.5);border-radius:5px;background:transparent;color:var(--mc-debug-accent);cursor:pointer}
+    .mc-debug-export svg{display:block;width:14px;height:14px}
+    .mc-debug-export:hover{border-color:var(--mc-debug-accent);background:rgba(var(--mc-debug-accent-rgb),.12)}
+    .mc-debug-export:focus-visible{outline:2px solid var(--mc-debug-accent);outline-offset:2px}
+    .mc-debug-reset{border-color:rgba(255,255,255,.25);color:rgba(255,255,255,.7)}
+    .mc-debug-reset:hover{border-color:#ff6b5e;background:rgba(255,107,94,.14);color:#ff6b5e}
     .mc-debug-global{margin-bottom:10px;padding:0 0 10px;border-bottom:1px solid rgba(255,255,255,.12)}
     .mc-debug-global-title,.mc-debug-group-title{margin-bottom:9px;color:var(--mc-debug-accent);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
     .mc-debug-global-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end}
@@ -59,7 +71,7 @@ const CSS = `
     .mc-debug-disclosure-copy{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
     .mc-debug-disclosure-icon{display:flex;align-items:center;justify-content:center;flex:0 0 auto;width:16px;height:16px;color:var(--mc-debug-accent);transition:transform .18s ease}
     .mc-debug-disclosure[aria-expanded="true"] .mc-debug-disclosure-icon{transform:rotate(90deg)}
-    .mc-debug-title{min-width:0;flex:1;color:rgba(255,255,255,.9);font-weight:700}
+    .mc-debug-title{min-width:0;flex:1;overflow:hidden;color:rgba(255,255,255,.9);font-weight:700;text-overflow:ellipsis;white-space:nowrap}
     .mc-debug-section-body[hidden]{display:none}
     .mc-debug-section-body{padding:6px 10px 0}
     .mc-debug-icon-button{appearance:none;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:22px;height:22px;padding:0;border:0;border-radius:999px;background:transparent;color:var(--mc-debug-accent);cursor:pointer}
@@ -71,7 +83,11 @@ const CSS = `
     .mc-debug-control:last-child{margin-bottom:0}
     .mc-debug-section-body>.mc-debug-control:first-child{margin-top:6px}
     .mc-debug-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:7px}
-    .mc-debug-label{color:rgba(255,255,255,.82)}
+    .mc-debug-label{display:inline-flex;align-items:center;gap:6px;color:rgba(255,255,255,.82)}
+    .mc-debug-info{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border:1px solid rgba(var(--mc-debug-accent-rgb),.7);border-radius:50%;color:var(--mc-debug-accent);font-size:8px;font-weight:700;line-height:1;cursor:help}
+    .mc-debug-tooltip{position:fixed;z-index:2147483647;max-width:220px;padding:6px 8px;border-radius:5px;background:#171512;color:#fff;box-shadow:0 5px 16px rgba(0,0,0,.3);font:500 9px/1.35 'Poppins',Arial,Helvetica,sans-serif;opacity:0;pointer-events:none;transform:translateY(3px);transition:opacity .15s ease,transform .15s ease}
+    .mc-debug-tooltip.is-visible{opacity:1;transform:translateY(0)}
+    .mc-debug-info:focus-visible{outline:2px solid var(--mc-debug-accent);outline-offset:2px}
     .mc-debug-value{color:var(--mc-debug-accent);font-variant-numeric:tabular-nums}
     .mc-debug-control input[type=range]{--mc-range-progress:50%;-webkit-appearance:none;appearance:none;display:block;width:100%;height:16px;margin:0;background:transparent;cursor:pointer}
     .mc-debug-control input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:999px;background:linear-gradient(to right,var(--mc-debug-accent) 0%,var(--mc-debug-accent) var(--mc-range-progress),rgba(255,255,255,.14) var(--mc-range-progress),rgba(255,255,255,.14) 100%)}
@@ -79,6 +95,11 @@ const CSS = `
     .mc-debug-control input[type=range]::-moz-range-track{height:4px;border-radius:999px;background:rgba(255,255,255,.14)}
     .mc-debug-control input[type=range]::-moz-range-progress{height:4px;border-radius:999px;background:var(--mc-debug-accent)}
     .mc-debug-control input[type=range]::-moz-range-thumb{width:14px;height:14px;border:2px solid #2a2722;border-radius:50%;background:var(--mc-debug-accent)}
+    .mc-debug-control input[type=checkbox]{appearance:none;position:relative;display:block;width:30px;height:16px;margin:0;border:1px solid rgba(255,255,255,.28);border-radius:999px;background:rgba(255,255,255,.08);cursor:pointer;transition:background .16s ease,border-color .16s ease}
+    .mc-debug-control input[type=checkbox]::after{position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.55);content:'';transition:transform .16s ease,background .16s ease}
+    .mc-debug-control input[type=checkbox]:checked{border-color:var(--mc-debug-accent);background:var(--mc-debug-accent)}
+    .mc-debug-control input[type=checkbox]:checked::after{background:#2a2722;transform:translateX(14px)}
+    .mc-debug-control input[type=checkbox]:focus-visible{outline:2px solid var(--mc-debug-accent);outline-offset:2px}
     .mc-debug-text{appearance:none;display:block;width:100%;padding:8px 10px;border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(255,255,255,.04);color:#fff;font:500 11px/1.3 'Poppins',Arial,Helvetica,sans-serif}
     .mc-debug-text::placeholder{color:rgba(255,255,255,.35)}
     .mc-debug-text:hover{border-color:rgba(255,255,255,.22)}
@@ -90,6 +111,9 @@ const CSS = `
   `;
 
 const BRAND_SPOT_COLOURS = ['#00FF00', '#FF00FF', '#FF6600', '#FFFF00', '#00FFFF'] as const;
+const ACCORDION_STORAGE_KEY = 'mc-debug-accordion-state';
+const PANEL_COLLAPSED_STORAGE_KEY = 'mc-debug-panel-collapsed';
+const SETTINGS_STORAGE_PREFIX = 'mc-debug-settings:';
 const logger = createLogger('digerati', 'debug');
 
 const ensureMC = (): MCNamespace => {
@@ -187,14 +211,120 @@ const ensureMotionAPI = (): MCMotionAPI => {
   return mc.motion;
 };
 
+const currentPageName = () => {
+  const path = window.location.pathname.replace(/\/+$/, '');
+  return `/${decodeURIComponent(path.split('/').pop() || 'index')}`;
+};
+
 export const initMCDebug = () => {
   const mc = ensureMC();
   const motion = ensureMotionAPI();
   const schemas = new Map<string, MCDebugSchema>();
   const collapsedState = new Map<string, boolean>();
+  const hydratedSchemas = new Set<string>();
+  let globalSettingsHydrated = false;
+  const settingsStorageKey = `${SETTINGS_STORAGE_PREFIX}${currentPageName()}`;
+  type DebugSettings = {
+    page?: string;
+    exportedAt?: string;
+    motion?: MotionMode;
+    scrollTriggerDebug?: boolean;
+    effects?: Record<string, Array<Record<string, unknown>>>;
+  };
+  let storedSettings: DebugSettings | null = null;
+  let panelContentCollapsed = false;
+
+  try {
+    const savedState = JSON.parse(
+      window.localStorage.getItem(ACCORDION_STORAGE_KEY) || '{}'
+    ) as Record<string, boolean>;
+
+    Object.entries(savedState).forEach(([key, collapsed]) => {
+      if (typeof collapsed === 'boolean') {
+        collapsedState.set(key, collapsed);
+      }
+    });
+
+    panelContentCollapsed = window.localStorage.getItem(PANEL_COLLAPSED_STORAGE_KEY) === 'true';
+    const savedSettings = JSON.parse(window.localStorage.getItem(settingsStorageKey) || 'null');
+    if (savedSettings && typeof savedSettings === 'object') {
+      storedSettings = savedSettings as DebugSettings;
+    }
+  } catch {
+    // The debugger remains usable when storage is unavailable.
+  }
 
   let panel: HTMLDivElement | null = null;
   let isOpen = false;
+  let activeTooltip: HTMLDivElement | null = null;
+
+  const hideTooltip = () => {
+    activeTooltip?.remove();
+    activeTooltip = null;
+  };
+
+  const showTooltip = (target: HTMLElement, message: string) => {
+    hideTooltip();
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'mc-debug-tooltip';
+    tooltip.id = 'mc-debug-tooltip';
+    tooltip.textContent = message;
+    tooltip.setAttribute('role', 'tooltip');
+    document.body.appendChild(tooltip);
+
+    const targetBounds = target.getBoundingClientRect();
+    const tooltipBounds = tooltip.getBoundingClientRect();
+    const margin = 8;
+    const left = Math.min(
+      window.innerWidth - tooltipBounds.width - margin,
+      Math.max(margin, targetBounds.right - tooltipBounds.width)
+    );
+    const topAbove = targetBounds.top - tooltipBounds.height - margin;
+    const top = topAbove >= margin ? topAbove : targetBounds.bottom + margin;
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${Math.min(window.innerHeight - tooltipBounds.height - margin, top)}px`;
+    tooltip.classList.add('is-visible');
+    activeTooltip = tooltip;
+  };
+
+  const attachTooltip = (target: HTMLElement) => {
+    const message = target.dataset.tooltip;
+    if (!message) return;
+
+    target.setAttribute('aria-describedby', 'mc-debug-tooltip');
+    target.addEventListener('pointerenter', () => showTooltip(target, message));
+    target.addEventListener('pointerleave', hideTooltip);
+    target.addEventListener('focus', () => showTooltip(target, message));
+    target.addEventListener('blur', hideTooltip);
+  };
+
+  const orderedSchemas = () =>
+    [...schemas.values()].sort((a, b) => {
+      if (a.order !== b.order) {
+        return (a.order ?? 0) - (b.order ?? 0);
+      }
+
+      const aElement = a.orderElement?.();
+      const bElement = b.orderElement?.();
+
+      if (!aElement || !bElement || aElement === bElement) {
+        return 0;
+      }
+
+      const position = aElement.compareDocumentPosition(bElement);
+
+      if (position & Node.DOCUMENT_POSITION_FOLLOWING) {
+        return -1;
+      }
+
+      if (position & Node.DOCUMENT_POSITION_PRECEDING) {
+        return 1;
+      }
+
+      return 0;
+    });
 
   const setAccentColour = (hex: string) => {
     const normalized = hex.startsWith('#') ? hex : `#${hex}`;
@@ -224,7 +354,18 @@ export const initMCDebug = () => {
     setAccentColour(colour);
   };
 
-  const syncAccordionButton = () => {
+  const persistAccordionState = () => {
+    try {
+      window.localStorage.setItem(
+        ACCORDION_STORAGE_KEY,
+        JSON.stringify(Object.fromEntries(collapsedState))
+      );
+    } catch {
+      // The debugger remains usable when storage is unavailable.
+    }
+  };
+
+  const syncPanelCollapseButton = () => {
     if (!panel) {
       return;
     }
@@ -235,11 +376,11 @@ export const initMCDebug = () => {
       return;
     }
 
-    const expanded = areAllSectionsExpanded();
+    const expanded = !panelContentCollapsed;
 
     button.dataset.expanded = String(expanded);
-    button.title = expanded ? 'Collapse all' : 'Expand all';
-    button.setAttribute('aria-label', expanded ? 'Collapse all' : 'Expand all');
+    button.title = expanded ? 'Collapse panel' : 'Expand panel';
+    button.setAttribute('aria-label', expanded ? 'Collapse panel' : 'Expand panel');
   };
 
   const formatValue = (control: MCRangeControl, value: unknown) => {
@@ -265,15 +406,187 @@ export const initMCDebug = () => {
     if (instance?.settings && key in instance.settings) return instance.settings[key];
   };
 
-  const write = (instance: MCController, schema: MCDebugSchema, key: string, value: unknown) => {
+  const write = (
+    instance: MCController,
+    schema: MCDebugSchema,
+    key: string,
+    value: unknown,
+    persist = true
+  ) => {
     if (typeof schema.set === 'function') {
       schema.set(instance, key, value);
+    } else if (typeof instance?.set === 'function') {
+      instance.set(key, value);
+    }
+
+    if (persist) {
+      persistSettings();
+    }
+  };
+
+  const collectSettings = (): DebugSettings => {
+    const effects: Record<string, Array<Record<string, unknown>>> = {};
+
+    orderedSchemas().forEach((schema) => {
+      const instances =
+        typeof schema.instances === 'function' ? (schema.instances() || []).filter(Boolean) : [];
+      const controls = (schema.controls || []).filter(
+        (control) =>
+          control.type === 'range' || control.type === 'text' || control.type === 'toggle'
+      );
+
+      effects[schema.id] = instances.map((instance) => {
+        const settings: Record<string, unknown> = {};
+
+        controls.forEach((control) => {
+          const value = read(instance, schema, control.key);
+          if (value !== undefined) {
+            settings[control.key] = value;
+          }
+        });
+
+        return settings;
+      });
+    });
+
+    return {
+      page: currentPageName(),
+      exportedAt: new Date().toISOString(),
+      motion: motion.mode,
+      scrollTriggerDebug: getScrollTriggerDebug(),
+      effects,
+    };
+  };
+
+  const saveStoredSettings = () => {
+    try {
+      window.localStorage.setItem(settingsStorageKey, JSON.stringify(storedSettings));
+    } catch {
+      // The debugger remains usable when storage is unavailable.
+    }
+  };
+
+  const persistSettings = () => {
+    storedSettings = collectSettings();
+    saveStoredSettings();
+  };
+
+  const applyGlobalSettings = (settings: DebugSettings) => {
+    if (settings.motion && ['system', 'reduce', 'full'].includes(settings.motion)) {
+      motion.setMode(settings.motion);
+    }
+
+    if (typeof settings.scrollTriggerDebug === 'boolean') {
+      setScrollTriggerDebug(settings.scrollTriggerDebug);
+    }
+  };
+
+  const hydrateSchema = (schema: MCDebugSchema) => {
+    if (hydratedSchemas.has(schema.id)) {
       return;
     }
 
-    if (typeof instance?.set === 'function') {
-      instance.set(key, value);
+    const savedInstances = storedSettings?.effects?.[schema.id];
+    const instances =
+      typeof schema.instances === 'function' ? (schema.instances() || []).filter(Boolean) : [];
+
+    if (!savedInstances || !instances.length) {
+      return;
     }
+
+    const validKeys = new Set(
+      (schema.controls || [])
+        .filter(
+          (control) =>
+            control.type === 'range' || control.type === 'text' || control.type === 'toggle'
+        )
+        .map((control) => control.key)
+    );
+
+    savedInstances.forEach((settings, index) => {
+      const instance = instances[index];
+      if (!instance) return;
+
+      Object.entries(settings).forEach(([key, value]) => {
+        if (validKeys.has(key)) {
+          write(instance, schema, key, value, false);
+        }
+      });
+    });
+
+    hydratedSchemas.add(schema.id);
+  };
+
+  const hydrateAvailableSettings = () => {
+    if (!storedSettings) {
+      return;
+    }
+
+    if (!globalSettingsHydrated) {
+      applyGlobalSettings(storedSettings);
+      globalSettingsHydrated = true;
+    }
+    orderedSchemas().forEach(hydrateSchema);
+  };
+
+  const exportSettings = () => {
+    const payload = collectSettings();
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const download = document.createElement('a');
+    download.href = url;
+    download.download = `mc-debug-${currentPageName().slice(1) || 'index'}.json`;
+    download.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
+
+  const importSettings = async (file: File) => {
+    try {
+      const imported = JSON.parse(await file.text()) as DebugSettings;
+
+      if (!imported || typeof imported !== 'object' || !imported.effects) {
+        throw new Error('The file does not contain MC debug settings.');
+      }
+
+      storedSettings = imported;
+      hydratedSchemas.clear();
+      globalSettingsHydrated = false;
+      saveStoredSettings();
+      hydrateAvailableSettings();
+      render();
+    } catch (error) {
+      logger.warn('Debug settings import failed:', error);
+    }
+  };
+
+  const resetSettings = () => {
+    try {
+      window.localStorage.removeItem(settingsStorageKey);
+      window.localStorage.removeItem(ACCORDION_STORAGE_KEY);
+      window.localStorage.removeItem(PANEL_COLLAPSED_STORAGE_KEY);
+    } catch {
+      // Reloading still restores page-authored attributes when storage is unavailable.
+    }
+
+    window.location.reload();
+  };
+
+  const createControlLabel = (labelText: string, description?: string) => {
+    const label = document.createElement('span');
+    label.className = 'mc-debug-label';
+    label.append(document.createTextNode(labelText));
+
+    const info = document.createElement('span');
+    info.className = 'mc-debug-info';
+    info.tabIndex = 0;
+    info.textContent = 'i';
+    info.dataset.tooltip = description || `Adjusts ${labelText.toLowerCase()}.`;
+    info.setAttribute('role', 'img');
+    info.setAttribute('aria-label', info.dataset.tooltip);
+    attachTooltip(info);
+    label.appendChild(info);
+
+    return label;
   };
 
   const createRange = (instance: MCController, schema: MCDebugSchema, control: MCRangeControl) => {
@@ -286,9 +599,7 @@ export const initMCDebug = () => {
     const row = document.createElement('div');
     row.className = 'mc-debug-row';
 
-    const label = document.createElement('span');
-    label.className = 'mc-debug-label';
-    label.textContent = control.label;
+    const label = createControlLabel(control.label, control.description);
 
     const display = document.createElement('span');
     display.className = 'mc-debug-value';
@@ -354,6 +665,31 @@ export const initMCDebug = () => {
     return button;
   };
 
+  const createToggle = (
+    instance: MCController,
+    schema: MCDebugSchema,
+    control: MCToggleControl
+  ) => {
+    const current = Boolean(read(instance, schema, control.key));
+    const wrap = document.createElement('label');
+    wrap.className = 'mc-debug-control';
+
+    const row = document.createElement('div');
+    row.className = 'mc-debug-row';
+    const label = createControlLabel(control.label, control.description);
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = current;
+    input.setAttribute('aria-label', control.label);
+    input.addEventListener('change', () => {
+      write(instance, schema, control.key, input.checked);
+    });
+
+    row.append(label, input);
+    wrap.appendChild(row);
+    return wrap;
+  };
+
   const createText = (instance: MCController, schema: MCDebugSchema, control: MCTextControl) => {
     const current = read(instance, schema, control.key);
 
@@ -388,9 +724,7 @@ export const initMCDebug = () => {
       const row = document.createElement('div');
       row.className = 'mc-debug-row';
 
-      const label = document.createElement('span');
-      label.className = 'mc-debug-label';
-      label.textContent = control.label;
+      const label = createControlLabel(control.label, control.description);
 
       row.appendChild(label);
       wrap.append(row, input);
@@ -528,6 +862,7 @@ export const initMCDebug = () => {
       disclosure.setAttribute('aria-expanded', String(!nextCollapsed));
       header.dataset.open = String(!nextCollapsed);
       collapsedState.set(sectionKey, nextCollapsed);
+      persistAccordionState();
     });
 
     const replayControl = (schema.controls || []).find(
@@ -564,6 +899,8 @@ export const initMCDebug = () => {
         element = createRange(instance, schema, control);
       } else if (control.type === 'text') {
         element = createText(instance, schema, control);
+      } else if (control.type === 'toggle') {
+        element = createToggle(instance, schema, control);
       } else if (control.type === 'button') {
         element = createButton(instance, control);
       }
@@ -625,6 +962,7 @@ export const initMCDebug = () => {
         motion.mode,
         (mode, button, control) => {
           motion.setMode(mode);
+          persistSettings();
           control.querySelectorAll('button').forEach((el) => el.classList.remove('is-active'));
           button.classList.add('is-active');
         }
@@ -648,6 +986,7 @@ export const initMCDebug = () => {
         getScrollTriggerDebug() ? 'on' : 'off',
         (value, button, control) => {
           setScrollTriggerDebug(value === 'on');
+          persistSettings();
           control.querySelectorAll('button').forEach((el) => el.classList.remove('is-active'));
           button.classList.add('is-active');
         }
@@ -659,44 +998,13 @@ export const initMCDebug = () => {
     return wrap;
   };
 
-  const getSectionKeys = () => {
-    const keys: string[] = [];
-
-    schemas.forEach((schema) => {
-      const instances =
-        typeof schema.instances === 'function' ? (schema.instances() || []).filter(Boolean) : [];
-
-      instances.forEach((_instance, index) => {
-        keys.push(`${schema.id}:${index}`);
-      });
-    });
-
-    return keys;
-  };
-
-  const areAllSectionsExpanded = () => {
-    const keys = getSectionKeys();
-
-    if (!keys.length) {
-      return false;
-    }
-
-    return keys.every((key) => collapsedState.get(key) === false);
-  };
-
-  const setAllSectionsCollapsed = (collapsed: boolean) => {
-    getSectionKeys().forEach((key) => {
-      collapsedState.set(key, collapsed);
-    });
-  };
-
-  const accordionControl = () => {
+  const panelCollapseControl = () => {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'mc-debug-global-icon';
-    button.dataset.expanded = String(areAllSectionsExpanded());
-    button.title = areAllSectionsExpanded() ? 'Collapse all' : 'Expand all';
-    button.setAttribute('aria-label', areAllSectionsExpanded() ? 'Collapse all' : 'Expand all');
+    button.dataset.expanded = String(!panelContentCollapsed);
+    button.title = panelContentCollapsed ? 'Expand panel' : 'Collapse panel';
+    button.setAttribute('aria-label', panelContentCollapsed ? 'Expand panel' : 'Collapse panel');
     button.innerHTML = `
       <span class="mc-debug-disclosure-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -706,9 +1014,20 @@ export const initMCDebug = () => {
     `;
 
     button.addEventListener('click', () => {
-      const expand = !areAllSectionsExpanded();
-      setAllSectionsCollapsed(!expand);
-      render();
+      panelContentCollapsed = !panelContentCollapsed;
+
+      try {
+        window.localStorage.setItem(PANEL_COLLAPSED_STORAGE_KEY, String(panelContentCollapsed));
+      } catch {
+        // The debugger remains usable when storage is unavailable.
+      }
+
+      const content = panel?.querySelector<HTMLElement>('.mc-debug-content');
+      if (content) {
+        content.hidden = panelContentCollapsed;
+      }
+
+      syncPanelCollapseButton();
     });
 
     return button;
@@ -717,16 +1036,18 @@ export const initMCDebug = () => {
   const render = () => {
     if (!panel) return;
 
-    syncAccordionButton();
+    hideTooltip();
+    syncPanelCollapseButton();
 
-    const content = panel.querySelector('.mc-debug-content');
+    const content = panel.querySelector<HTMLElement>('.mc-debug-content');
     if (!content) return;
 
+    content.hidden = panelContentCollapsed;
     content.innerHTML = '';
     content.appendChild(motionControl());
     let rendered = false;
     let sectionCount = 0;
-    schemas.forEach((schema) => {
+    orderedSchemas().forEach((schema) => {
       const instances =
         typeof schema.instances === 'function' ? (schema.instances() || []).filter(Boolean) : [];
 
@@ -782,14 +1103,96 @@ export const initMCDebug = () => {
           <path d="M41.1864 50.5709C43.1753 50.5709 44.7876 48.9662 44.7876 46.9868C44.7876 45.0073 43.1753 43.4026 41.1864 43.4026C39.1976 43.4026 37.5853 45.0073 37.5853 46.9868C37.5853 48.9662 39.1976 50.5709 41.1864 50.5709Z" fill="currentColor"/>
           <path d="M41.1864 58.2798C30.0578 58.2798 23.6153 48.9754 23.3464 48.5795L24.2635 46.8092L23.3464 45.039C23.6153 44.6431 30.0578 35.3387 41.1864 35.3387C52.3151 35.3387 58.7576 44.6431 59.0264 45.039L58.1094 46.8092L59.0264 48.5795C58.7576 48.9754 52.3151 58.2798 41.1864 58.2798ZM24.2635 46.8097C26.2639 48.8589 36.0107 51.9549 41.1864 51.9549C46.3594 51.9549 56.1057 48.8618 58.1094 46.8092C56.1057 44.7567 46.3594 41.6636 41.1864 41.6636C36.0131 41.6636 26.2669 44.7571 24.2635 46.8097Z" fill="white"/>
         </svg>
+        <span class="mc-debug-page"></span>
         <div class="mc-debug-brand-actions"></div>
       </div>
       <div class="mc-debug-content"></div>
+      <div class="mc-debug-footer">
+        <span>It's not a conspiracy.</span>
+        <div class="mc-debug-footer-actions">
+          <button class="mc-debug-export mc-debug-import" type="button" aria-label="Import JSON" data-tooltip="Import JSON settings">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M12 3V15M12 15L7.5 10.5M12 15L16.5 10.5M4 16V20H20V16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="mc-debug-export mc-debug-export-file" type="button" aria-label="Export JSON" data-tooltip="Export JSON settings">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M12 15V3M12 3L7.5 7.5M12 3L16.5 7.5M4 16V20H20V16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="mc-debug-export mc-debug-reset" type="button" aria-label="Reset settings" data-tooltip="Reset saved settings">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M20 6V11H15M18.364 15A8 8 0 1 1 20 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <input class="mc-debug-import-file" type="file" accept="application/json,.json" hidden>
+        </div>
+      </div>
     `;
 
     panel.style.display = 'none';
     document.body.appendChild(panel);
-    panel.querySelector('.mc-debug-brand-actions')?.appendChild(accordionControl());
+    const pageName = currentPageName();
+    const pageLabel = panel.querySelector<HTMLElement>('.mc-debug-page');
+    if (pageLabel) {
+      pageLabel.textContent = pageName;
+      pageLabel.title = pageName;
+    }
+    panel.querySelectorAll<HTMLElement>('[data-tooltip]').forEach(attachTooltip);
+    panel.querySelector('.mc-debug-brand-actions')?.appendChild(panelCollapseControl());
+    panel
+      .querySelector<HTMLButtonElement>('.mc-debug-export-file')
+      ?.addEventListener('click', exportSettings);
+    const importButton = panel.querySelector<HTMLButtonElement>('.mc-debug-import');
+    const importFile = panel.querySelector<HTMLInputElement>('.mc-debug-import-file');
+    importButton?.addEventListener('click', () => importFile?.click());
+    importFile?.addEventListener('change', () => {
+      const [file] = [...(importFile.files || [])];
+      if (file) {
+        void importSettings(file);
+      }
+      importFile.value = '';
+    });
+    panel
+      .querySelector<HTMLButtonElement>('.mc-debug-reset')
+      ?.addEventListener('click', resetSettings);
+
+    const dragHandle = panel.querySelector<HTMLElement>('.mc-debug-brand');
+
+    dragHandle?.addEventListener('pointerdown', (event) => {
+      if (event.target instanceof Element && event.target.closest('button')) {
+        return;
+      }
+
+      const currentPanel = panel;
+      if (!currentPanel) {
+        return;
+      }
+
+      const bounds = currentPanel.getBoundingClientRect();
+      const offsetX = event.clientX - bounds.left;
+      const offsetY = event.clientY - bounds.top;
+
+      currentPanel.style.left = `${bounds.left}px`;
+      currentPanel.style.top = `${bounds.top}px`;
+      currentPanel.style.right = 'auto';
+
+      dragHandle.setPointerCapture(event.pointerId);
+
+      const move = (moveEvent: PointerEvent) => {
+        const maxLeft = Math.max(0, window.innerWidth - bounds.width);
+        const maxTop = Math.max(0, window.innerHeight - bounds.height);
+        const left = Math.min(maxLeft, Math.max(0, moveEvent.clientX - offsetX));
+        const top = Math.min(maxTop, Math.max(0, moveEvent.clientY - offsetY));
+
+        currentPanel.style.left = `${left}px`;
+        currentPanel.style.top = `${top}px`;
+      };
+
+      const stop = () => {
+        dragHandle.removeEventListener('pointermove', move);
+        dragHandle.removeEventListener('pointerup', stop);
+        dragHandle.removeEventListener('pointercancel', stop);
+      };
+
+      dragHandle.addEventListener('pointermove', move);
+      dragHandle.addEventListener('pointerup', stop);
+      dragHandle.addEventListener('pointercancel', stop);
+    });
   };
 
   const open = () => {
@@ -805,6 +1208,7 @@ export const initMCDebug = () => {
   const close = () => {
     if (!panel) return;
     isOpen = false;
+    hideTooltip();
     panel.style.display = 'none';
   };
 
@@ -819,6 +1223,7 @@ export const initMCDebug = () => {
   const register = (schema: MCDebugSchema) => {
     if (!schema?.id) return;
     schemas.set(schema.id, schema);
+    hydrateAvailableSettings();
     if (isOpen) render();
   };
 
@@ -828,6 +1233,7 @@ export const initMCDebug = () => {
   };
 
   const refresh = () => {
+    hydrateAvailableSettings();
     if (isOpen) render();
   };
 

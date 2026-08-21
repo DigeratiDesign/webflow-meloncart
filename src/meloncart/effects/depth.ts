@@ -1,8 +1,9 @@
 import { getScrollTriggerDebug, gsap, onScrollTriggerDebugChange } from '../../digerati/core/gsap';
-import { createLogger } from '../../digerati/core/logger';
+import { createLogger, isMCDebugEnabled } from '../../digerati/core/logger';
 import type { MCDebugSchema, MCNamespace } from '../../digerati/core/types';
 
 const SELECTOR = 'img[mc-depth-reveal]';
+const OWNER_ATTRIBUTE = 'mc-animation-owner';
 
 const DEFAULTS = {
   trace: 1.35,
@@ -23,7 +24,7 @@ const DEFAULTS = {
   direction: 1,
   duration: 2850,
 };
-const logger = createLogger('melon', 'depth');
+const logger = createLogger('melon', 'depth', { debug: isMCDebugEnabled });
 
 type GSAPTween = {
   kill?: () => void;
@@ -327,17 +328,28 @@ class MCDepthReveal {
     void this.init();
   }
 
+  get parentOwned() {
+    return this.image.hasAttribute(OWNER_ATTRIBUTE);
+  }
+
   async init() {
     if (motion().reduced) {
       this.showStaticImage();
       return;
     }
 
+    if (this.parentOwned) {
+      logger.debug('Standalone initialisation deferred to parent', { image: this.image });
+      return;
+    }
+
     await this.loadEffect();
   }
 
-  async loadEffect() {
+  async loadEffect(startReveal = true) {
     if (this.effectLoaded || this.loadingEffect || motion().reduced) return;
+
+    logger.debug('Loading effect', { image: this.image, startReveal });
 
     if (!this.depthSrc) {
       logger.warn('Missing mc-depth-map:', this.image);
@@ -409,9 +421,10 @@ class MCDepthReveal {
       await nextFrame();
       await nextFrame();
 
-      if (!motion().reduced) this.startReveal();
+      if (!motion().reduced && startReveal) this.startReveal();
 
       logger.info('Initialised');
+      logger.debug('Effect ready', { image: this.image, startReveal });
     } catch (error) {
       this.loadingEffect = false;
       logger.error('Initialisation failed:', error, this.image);
@@ -437,7 +450,11 @@ class MCDepthReveal {
     }
 
     if (!this.effectLoaded) {
-      await this.loadEffect();
+      await this.loadEffect(!this.parentOwned);
+      return;
+    }
+
+    if (this.parentOwned) {
       return;
     }
 
@@ -545,16 +562,57 @@ class MCDepthReveal {
     if (!motion().reduced) this.requestFrame();
   }
 
-  replay() {
+  async prepare() {
+    if (motion().reduced) {
+      this.showStaticImage();
+      return;
+    }
+
+    logger.debug('Preparing parent-owned effect', { image: this.image });
+    await this.loadEffect(false);
+    logger.debug('Parent-owned effect prepared', {
+      image: this.image,
+      effectLoaded: this.effectLoaded,
+      ready: this.ready,
+    });
+  }
+
+  resetForParent() {
     if (motion().reduced) {
       this.showStaticImage();
       return;
     }
 
     if (!this.effectLoaded) {
-      void this.loadEffect();
       return;
     }
+
+    this.resetRevealState();
+    this.image.style.opacity = '0';
+
+    if (this.canvas) {
+      this.canvas.style.display = 'block';
+      this.canvas.style.opacity = '0';
+    }
+
+    logger.debug('Reset parent-owned effect', { image: this.image });
+  }
+
+  async replay() {
+    if (motion().reduced) {
+      this.showStaticImage();
+      return;
+    }
+
+    if (!this.effectLoaded) {
+      await this.loadEffect(false);
+    }
+
+    if (!this.effectLoaded) {
+      return;
+    }
+
+    logger.debug('Starting reveal', { image: this.image });
 
     this.image.style.opacity = '0';
     if (this.canvas) this.canvas.style.display = 'block';
@@ -1604,6 +1662,7 @@ export const initMCDepth = () => {
       id: 'depth',
       label: 'Depth',
       instances: () => ensureMC().depth || [],
+      orderElement: () => ensureMC().depth?.[0]?.image || null,
       instanceLabel: 'Depth Hero',
       controls: [
         {

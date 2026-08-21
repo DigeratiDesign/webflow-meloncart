@@ -29,6 +29,7 @@ export type MCRangeControl = {
   max: number;
   step: number;
   suffix?: string;
+  description?: string;
   decimals?: number;
   event?: 'change';
   format?: (value: number) => string;
@@ -38,8 +39,16 @@ export type MCTextControl = {
   type: 'text';
   key: string;
   label?: string;
+  description?: string;
   placeholder?: string;
   event?: 'change';
+};
+
+export type MCToggleControl = {
+  type: 'toggle';
+  key: string;
+  label: string;
+  description?: string;
 };
 
 export type MCButtonControl = {
@@ -52,9 +61,11 @@ export type MCButtonControl = {
 export type MCDebugSchema = {
   id: string;
   label?: string;
+  order?: number;
   instances?: () => MCController[];
+  orderElement?: () => Element | null;
   stats?: MCStat[];
-  controls?: Array<MCRangeControl | MCTextControl | MCButtonControl>;
+  controls?: Array<MCRangeControl | MCTextControl | MCToggleControl | MCButtonControl>;
   instanceLabel?:
     | string
     | false

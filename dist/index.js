@@ -7047,6 +7047,9 @@
   };
 
   // src/digerati/core/logger.ts
+  var isMCDebugEnabled = () => {
+    return true;
+  };
   var resolveDebug = (debug3) => {
     if (typeof debug3 === "function") {
       return debug3();
@@ -7096,9 +7099,20 @@
       -webkit-font-smoothing:antialiased
     }
     #mc-debug-panel *{box-sizing:border-box}
-    .mc-debug-brand{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-14px -14px 16px;padding:10px 14px 12px;border-bottom:1px solid rgba(255,255,255,.12)}
+    .mc-debug-brand{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-14px -14px 16px;padding:10px 14px 12px;border-bottom:1px solid rgba(255,255,255,.12);cursor:grab;touch-action:none;user-select:none}
+    .mc-debug-brand:active{cursor:grabbing}
     .mc-debug-logo{display:block;width:50px;height:auto;color:var(--mc-debug-accent)}
+    .mc-debug-page{display:block;flex:1;min-width:0;overflow:hidden;color:rgba(255,255,255,.92);font-size:11px;font-weight:700;letter-spacing:.04em;text-overflow:ellipsis;white-space:nowrap}
+    .mc-debug-page::before{display:block;margin-bottom:3px;color:var(--mc-debug-accent);content:'PAGE';font-size:8px;font-weight:700;letter-spacing:.12em}
     .mc-debug-content{flex:1 1 auto;min-height:0;overflow-y:auto;padding-right:2px}
+    .mc-debug-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px -14px -14px;padding:10px 14px;border-top:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);font-size:9px;font-weight:600;letter-spacing:.04em}
+    .mc-debug-footer-actions{display:flex;align-items:center;gap:5px}
+    .mc-debug-export{appearance:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:1px solid rgba(var(--mc-debug-accent-rgb),.5);border-radius:5px;background:transparent;color:var(--mc-debug-accent);cursor:pointer}
+    .mc-debug-export svg{display:block;width:14px;height:14px}
+    .mc-debug-export:hover{border-color:var(--mc-debug-accent);background:rgba(var(--mc-debug-accent-rgb),.12)}
+    .mc-debug-export:focus-visible{outline:2px solid var(--mc-debug-accent);outline-offset:2px}
+    .mc-debug-reset{border-color:rgba(255,255,255,.25);color:rgba(255,255,255,.7)}
+    .mc-debug-reset:hover{border-color:#ff6b5e;background:rgba(255,107,94,.14);color:#ff6b5e}
     .mc-debug-global{margin-bottom:10px;padding:0 0 10px;border-bottom:1px solid rgba(255,255,255,.12)}
     .mc-debug-global-title,.mc-debug-group-title{margin-bottom:9px;color:var(--mc-debug-accent);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
     .mc-debug-global-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end}
@@ -7128,7 +7142,7 @@
     .mc-debug-disclosure-copy{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
     .mc-debug-disclosure-icon{display:flex;align-items:center;justify-content:center;flex:0 0 auto;width:16px;height:16px;color:var(--mc-debug-accent);transition:transform .18s ease}
     .mc-debug-disclosure[aria-expanded="true"] .mc-debug-disclosure-icon{transform:rotate(90deg)}
-    .mc-debug-title{min-width:0;flex:1;color:rgba(255,255,255,.9);font-weight:700}
+    .mc-debug-title{min-width:0;flex:1;overflow:hidden;color:rgba(255,255,255,.9);font-weight:700;text-overflow:ellipsis;white-space:nowrap}
     .mc-debug-section-body[hidden]{display:none}
     .mc-debug-section-body{padding:6px 10px 0}
     .mc-debug-icon-button{appearance:none;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:22px;height:22px;padding:0;border:0;border-radius:999px;background:transparent;color:var(--mc-debug-accent);cursor:pointer}
@@ -7140,7 +7154,11 @@
     .mc-debug-control:last-child{margin-bottom:0}
     .mc-debug-section-body>.mc-debug-control:first-child{margin-top:6px}
     .mc-debug-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:7px}
-    .mc-debug-label{color:rgba(255,255,255,.82)}
+    .mc-debug-label{display:inline-flex;align-items:center;gap:6px;color:rgba(255,255,255,.82)}
+    .mc-debug-info{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border:1px solid rgba(var(--mc-debug-accent-rgb),.7);border-radius:50%;color:var(--mc-debug-accent);font-size:8px;font-weight:700;line-height:1;cursor:help}
+    .mc-debug-tooltip{position:fixed;z-index:2147483647;max-width:220px;padding:6px 8px;border-radius:5px;background:#171512;color:#fff;box-shadow:0 5px 16px rgba(0,0,0,.3);font:500 9px/1.35 'Poppins',Arial,Helvetica,sans-serif;opacity:0;pointer-events:none;transform:translateY(3px);transition:opacity .15s ease,transform .15s ease}
+    .mc-debug-tooltip.is-visible{opacity:1;transform:translateY(0)}
+    .mc-debug-info:focus-visible{outline:2px solid var(--mc-debug-accent);outline-offset:2px}
     .mc-debug-value{color:var(--mc-debug-accent);font-variant-numeric:tabular-nums}
     .mc-debug-control input[type=range]{--mc-range-progress:50%;-webkit-appearance:none;appearance:none;display:block;width:100%;height:16px;margin:0;background:transparent;cursor:pointer}
     .mc-debug-control input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:999px;background:linear-gradient(to right,var(--mc-debug-accent) 0%,var(--mc-debug-accent) var(--mc-range-progress),rgba(255,255,255,.14) var(--mc-range-progress),rgba(255,255,255,.14) 100%)}
@@ -7148,6 +7166,11 @@
     .mc-debug-control input[type=range]::-moz-range-track{height:4px;border-radius:999px;background:rgba(255,255,255,.14)}
     .mc-debug-control input[type=range]::-moz-range-progress{height:4px;border-radius:999px;background:var(--mc-debug-accent)}
     .mc-debug-control input[type=range]::-moz-range-thumb{width:14px;height:14px;border:2px solid #2a2722;border-radius:50%;background:var(--mc-debug-accent)}
+    .mc-debug-control input[type=checkbox]{appearance:none;position:relative;display:block;width:30px;height:16px;margin:0;border:1px solid rgba(255,255,255,.28);border-radius:999px;background:rgba(255,255,255,.08);cursor:pointer;transition:background .16s ease,border-color .16s ease}
+    .mc-debug-control input[type=checkbox]::after{position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.55);content:'';transition:transform .16s ease,background .16s ease}
+    .mc-debug-control input[type=checkbox]:checked{border-color:var(--mc-debug-accent);background:var(--mc-debug-accent)}
+    .mc-debug-control input[type=checkbox]:checked::after{background:#2a2722;transform:translateX(14px)}
+    .mc-debug-control input[type=checkbox]:focus-visible{outline:2px solid var(--mc-debug-accent);outline-offset:2px}
     .mc-debug-text{appearance:none;display:block;width:100%;padding:8px 10px;border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(255,255,255,.04);color:#fff;font:500 11px/1.3 'Poppins',Arial,Helvetica,sans-serif}
     .mc-debug-text::placeholder{color:rgba(255,255,255,.35)}
     .mc-debug-text:hover{border-color:rgba(255,255,255,.22)}
@@ -7158,6 +7181,9 @@
     .mc-debug-status{margin-bottom:12px;padding:10px;background:rgba(255,255,255,.06);border-radius:6px;color:rgba(255,255,255,.65);white-space:pre-wrap}
   `;
   var BRAND_SPOT_COLOURS = ["#00FF00", "#FF00FF", "#FF6600", "#FFFF00", "#00FFFF"];
+  var ACCORDION_STORAGE_KEY = "mc-debug-accordion-state";
+  var PANEL_COLLAPSED_STORAGE_KEY = "mc-debug-panel-collapsed";
+  var SETTINGS_STORAGE_PREFIX = "mc-debug-settings:";
   var logger = createLogger("digerati", "debug");
   var ensureMC = () => {
     window.MC ||= {};
@@ -7232,13 +7258,92 @@
     }
     return mc.motion;
   };
+  var currentPageName = () => {
+    const path = window.location.pathname.replace(/\/+$/, "");
+    return `/${decodeURIComponent(path.split("/").pop() || "index")}`;
+  };
   var initMCDebug = () => {
     const mc = ensureMC();
     const motion2 = ensureMotionAPI();
     const schemas = /* @__PURE__ */ new Map();
     const collapsedState = /* @__PURE__ */ new Map();
+    const hydratedSchemas = /* @__PURE__ */ new Set();
+    let globalSettingsHydrated = false;
+    const settingsStorageKey = `${SETTINGS_STORAGE_PREFIX}${currentPageName()}`;
+    let storedSettings = null;
+    let panelContentCollapsed = false;
+    try {
+      const savedState = JSON.parse(
+        window.localStorage.getItem(ACCORDION_STORAGE_KEY) || "{}"
+      );
+      Object.entries(savedState).forEach(([key, collapsed]) => {
+        if (typeof collapsed === "boolean") {
+          collapsedState.set(key, collapsed);
+        }
+      });
+      panelContentCollapsed = window.localStorage.getItem(PANEL_COLLAPSED_STORAGE_KEY) === "true";
+      const savedSettings = JSON.parse(window.localStorage.getItem(settingsStorageKey) || "null");
+      if (savedSettings && typeof savedSettings === "object") {
+        storedSettings = savedSettings;
+      }
+    } catch {
+    }
     let panel = null;
     let isOpen = false;
+    let activeTooltip = null;
+    const hideTooltip = () => {
+      activeTooltip?.remove();
+      activeTooltip = null;
+    };
+    const showTooltip = (target, message) => {
+      hideTooltip();
+      const tooltip = document.createElement("div");
+      tooltip.className = "mc-debug-tooltip";
+      tooltip.id = "mc-debug-tooltip";
+      tooltip.textContent = message;
+      tooltip.setAttribute("role", "tooltip");
+      document.body.appendChild(tooltip);
+      const targetBounds = target.getBoundingClientRect();
+      const tooltipBounds = tooltip.getBoundingClientRect();
+      const margin = 8;
+      const left = Math.min(
+        window.innerWidth - tooltipBounds.width - margin,
+        Math.max(margin, targetBounds.right - tooltipBounds.width)
+      );
+      const topAbove = targetBounds.top - tooltipBounds.height - margin;
+      const top = topAbove >= margin ? topAbove : targetBounds.bottom + margin;
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${Math.min(window.innerHeight - tooltipBounds.height - margin, top)}px`;
+      tooltip.classList.add("is-visible");
+      activeTooltip = tooltip;
+    };
+    const attachTooltip = (target) => {
+      const message = target.dataset.tooltip;
+      if (!message) return;
+      target.setAttribute("aria-describedby", "mc-debug-tooltip");
+      target.addEventListener("pointerenter", () => showTooltip(target, message));
+      target.addEventListener("pointerleave", hideTooltip);
+      target.addEventListener("focus", () => showTooltip(target, message));
+      target.addEventListener("blur", hideTooltip);
+    };
+    const orderedSchemas = () => [...schemas.values()].sort((a, b) => {
+      if (a.order !== b.order) {
+        return (a.order ?? 0) - (b.order ?? 0);
+      }
+      const aElement = a.orderElement?.();
+      const bElement = b.orderElement?.();
+      if (!aElement || !bElement || aElement === bElement) {
+        return 0;
+      }
+      const position = aElement.compareDocumentPosition(bElement);
+      if (position & Node.DOCUMENT_POSITION_FOLLOWING) {
+        return -1;
+      }
+      if (position & Node.DOCUMENT_POSITION_PRECEDING) {
+        return 1;
+      }
+      return 0;
+    });
     const setAccentColour = (hex) => {
       const normalized = hex.startsWith("#") ? hex : `#${hex}`;
       const value = normalized.slice(1);
@@ -7258,7 +7363,16 @@
       const colour = BRAND_SPOT_COLOURS[Math.floor(Math.random() * BRAND_SPOT_COLOURS.length)] || BRAND_SPOT_COLOURS[0];
       setAccentColour(colour);
     };
-    const syncAccordionButton = () => {
+    const persistAccordionState = () => {
+      try {
+        window.localStorage.setItem(
+          ACCORDION_STORAGE_KEY,
+          JSON.stringify(Object.fromEntries(collapsedState))
+        );
+      } catch {
+      }
+    };
+    const syncPanelCollapseButton = () => {
       if (!panel) {
         return;
       }
@@ -7266,10 +7380,10 @@
       if (!button) {
         return;
       }
-      const expanded = areAllSectionsExpanded();
+      const expanded = !panelContentCollapsed;
       button.dataset.expanded = String(expanded);
-      button.title = expanded ? "Collapse all" : "Expand all";
-      button.setAttribute("aria-label", expanded ? "Collapse all" : "Expand all");
+      button.title = expanded ? "Collapse panel" : "Expand panel";
+      button.setAttribute("aria-label", expanded ? "Collapse panel" : "Expand panel");
     };
     const formatValue = (control, value) => {
       const n = Number(value);
@@ -7285,14 +7399,144 @@
       if (typeof instance?.get === "function") return instance.get(key);
       if (instance?.settings && key in instance.settings) return instance.settings[key];
     };
-    const write = (instance, schema, key, value) => {
+    const write = (instance, schema, key, value, persist = true) => {
       if (typeof schema.set === "function") {
         schema.set(instance, key, value);
-        return;
-      }
-      if (typeof instance?.set === "function") {
+      } else if (typeof instance?.set === "function") {
         instance.set(key, value);
       }
+      if (persist) {
+        persistSettings();
+      }
+    };
+    const collectSettings = () => {
+      const effects = {};
+      orderedSchemas().forEach((schema) => {
+        const instances = typeof schema.instances === "function" ? (schema.instances() || []).filter(Boolean) : [];
+        const controls = (schema.controls || []).filter(
+          (control) => control.type === "range" || control.type === "text" || control.type === "toggle"
+        );
+        effects[schema.id] = instances.map((instance) => {
+          const settings = {};
+          controls.forEach((control) => {
+            const value = read(instance, schema, control.key);
+            if (value !== void 0) {
+              settings[control.key] = value;
+            }
+          });
+          return settings;
+        });
+      });
+      return {
+        page: currentPageName(),
+        exportedAt: (/* @__PURE__ */ new Date()).toISOString(),
+        motion: motion2.mode,
+        scrollTriggerDebug: getScrollTriggerDebug(),
+        effects
+      };
+    };
+    const saveStoredSettings = () => {
+      try {
+        window.localStorage.setItem(settingsStorageKey, JSON.stringify(storedSettings));
+      } catch {
+      }
+    };
+    const persistSettings = () => {
+      storedSettings = collectSettings();
+      saveStoredSettings();
+    };
+    const applyGlobalSettings = (settings) => {
+      if (settings.motion && ["system", "reduce", "full"].includes(settings.motion)) {
+        motion2.setMode(settings.motion);
+      }
+      if (typeof settings.scrollTriggerDebug === "boolean") {
+        setScrollTriggerDebug(settings.scrollTriggerDebug);
+      }
+    };
+    const hydrateSchema = (schema) => {
+      if (hydratedSchemas.has(schema.id)) {
+        return;
+      }
+      const savedInstances = storedSettings?.effects?.[schema.id];
+      const instances = typeof schema.instances === "function" ? (schema.instances() || []).filter(Boolean) : [];
+      if (!savedInstances || !instances.length) {
+        return;
+      }
+      const validKeys = new Set(
+        (schema.controls || []).filter(
+          (control) => control.type === "range" || control.type === "text" || control.type === "toggle"
+        ).map((control) => control.key)
+      );
+      savedInstances.forEach((settings, index) => {
+        const instance = instances[index];
+        if (!instance) return;
+        Object.entries(settings).forEach(([key, value]) => {
+          if (validKeys.has(key)) {
+            write(instance, schema, key, value, false);
+          }
+        });
+      });
+      hydratedSchemas.add(schema.id);
+    };
+    const hydrateAvailableSettings = () => {
+      if (!storedSettings) {
+        return;
+      }
+      if (!globalSettingsHydrated) {
+        applyGlobalSettings(storedSettings);
+        globalSettingsHydrated = true;
+      }
+      orderedSchemas().forEach(hydrateSchema);
+    };
+    const exportSettings = () => {
+      const payload = collectSettings();
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const download = document.createElement("a");
+      download.href = url;
+      download.download = `mc-debug-${currentPageName().slice(1) || "index"}.json`;
+      download.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    };
+    const importSettings = async (file) => {
+      try {
+        const imported = JSON.parse(await file.text());
+        if (!imported || typeof imported !== "object" || !imported.effects) {
+          throw new Error("The file does not contain MC debug settings.");
+        }
+        storedSettings = imported;
+        hydratedSchemas.clear();
+        globalSettingsHydrated = false;
+        saveStoredSettings();
+        hydrateAvailableSettings();
+        render3();
+      } catch (error2) {
+        logger.warn("Debug settings import failed:", error2);
+      }
+    };
+    const resetSettings = () => {
+      try {
+        window.localStorage.removeItem(settingsStorageKey);
+        window.localStorage.removeItem(ACCORDION_STORAGE_KEY);
+        window.localStorage.removeItem(PANEL_COLLAPSED_STORAGE_KEY);
+      } catch {
+      }
+      window.location.reload();
+    };
+    const createControlLabel = (labelText, description) => {
+      const label = document.createElement("span");
+      label.className = "mc-debug-label";
+      label.append(document.createTextNode(labelText));
+      const info = document.createElement("span");
+      info.className = "mc-debug-info";
+      info.tabIndex = 0;
+      info.textContent = "i";
+      info.dataset.tooltip = description || `Adjusts ${labelText.toLowerCase()}.`;
+      info.setAttribute("role", "img");
+      info.setAttribute("aria-label", info.dataset.tooltip);
+      attachTooltip(info);
+      label.appendChild(info);
+      return label;
     };
     const createRange = (instance, schema, control) => {
       const current = read(instance, schema, control.key);
@@ -7301,9 +7545,7 @@
       wrap3.className = "mc-debug-control";
       const row = document.createElement("div");
       row.className = "mc-debug-row";
-      const label = document.createElement("span");
-      label.className = "mc-debug-label";
-      label.textContent = control.label;
+      const label = createControlLabel(control.label, control.description);
       const display = document.createElement("span");
       display.className = "mc-debug-value";
       display.textContent = formatValue(control, current);
@@ -7355,6 +7597,24 @@
       });
       return button;
     };
+    const createToggle = (instance, schema, control) => {
+      const current = Boolean(read(instance, schema, control.key));
+      const wrap3 = document.createElement("label");
+      wrap3.className = "mc-debug-control";
+      const row = document.createElement("div");
+      row.className = "mc-debug-row";
+      const label = createControlLabel(control.label, control.description);
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = current;
+      input.setAttribute("aria-label", control.label);
+      input.addEventListener("change", () => {
+        write(instance, schema, control.key, input.checked);
+      });
+      row.append(label, input);
+      wrap3.appendChild(row);
+      return wrap3;
+    };
     const createText = (instance, schema, control) => {
       const current = read(instance, schema, control.key);
       const wrap3 = document.createElement("label");
@@ -7381,9 +7641,7 @@
       if (control.label) {
         const row = document.createElement("div");
         row.className = "mc-debug-row";
-        const label = document.createElement("span");
-        label.className = "mc-debug-label";
-        label.textContent = control.label;
+        const label = createControlLabel(control.label, control.description);
         row.appendChild(label);
         wrap3.append(row, input);
       } else {
@@ -7479,6 +7737,7 @@
         disclosure.setAttribute("aria-expanded", String(!nextCollapsed));
         header.dataset.open = String(!nextCollapsed);
         collapsedState.set(sectionKey, nextCollapsed);
+        persistAccordionState();
       });
       const replayControl = (schema.controls || []).find(
         (control) => control.type === "button" && isReplayControl(control)
@@ -7507,6 +7766,8 @@
           element = createRange(instance, schema, control);
         } else if (control.type === "text") {
           element = createText(instance, schema, control);
+        } else if (control.type === "toggle") {
+          element = createToggle(instance, schema, control);
         } else if (control.type === "button") {
           element = createButton(instance, control);
         }
@@ -7551,6 +7812,7 @@
           motion2.mode,
           (mode, button, control) => {
             motion2.setMode(mode);
+            persistSettings();
             control.querySelectorAll("button").forEach((el) => el.classList.remove("is-active"));
             button.classList.add("is-active");
           }
@@ -7571,6 +7833,7 @@
           getScrollTriggerDebug() ? "on" : "off",
           (value, button, control) => {
             setScrollTriggerDebug(value === "on");
+            persistSettings();
             control.querySelectorAll("button").forEach((el) => el.classList.remove("is-active"));
             button.classList.add("is-active");
           }
@@ -7580,35 +7843,13 @@
       wrap3.appendChild(grid);
       return wrap3;
     };
-    const getSectionKeys = () => {
-      const keys = [];
-      schemas.forEach((schema) => {
-        const instances = typeof schema.instances === "function" ? (schema.instances() || []).filter(Boolean) : [];
-        instances.forEach((_instance, index) => {
-          keys.push(`${schema.id}:${index}`);
-        });
-      });
-      return keys;
-    };
-    const areAllSectionsExpanded = () => {
-      const keys = getSectionKeys();
-      if (!keys.length) {
-        return false;
-      }
-      return keys.every((key) => collapsedState.get(key) === false);
-    };
-    const setAllSectionsCollapsed = (collapsed) => {
-      getSectionKeys().forEach((key) => {
-        collapsedState.set(key, collapsed);
-      });
-    };
-    const accordionControl = () => {
+    const panelCollapseControl = () => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "mc-debug-global-icon";
-      button.dataset.expanded = String(areAllSectionsExpanded());
-      button.title = areAllSectionsExpanded() ? "Collapse all" : "Expand all";
-      button.setAttribute("aria-label", areAllSectionsExpanded() ? "Collapse all" : "Expand all");
+      button.dataset.expanded = String(!panelContentCollapsed);
+      button.title = panelContentCollapsed ? "Expand panel" : "Collapse panel";
+      button.setAttribute("aria-label", panelContentCollapsed ? "Expand panel" : "Collapse panel");
       button.innerHTML = `
       <span class="mc-debug-disclosure-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -7617,22 +7858,31 @@
       </span>
     `;
       button.addEventListener("click", () => {
-        const expand = !areAllSectionsExpanded();
-        setAllSectionsCollapsed(!expand);
-        render3();
+        panelContentCollapsed = !panelContentCollapsed;
+        try {
+          window.localStorage.setItem(PANEL_COLLAPSED_STORAGE_KEY, String(panelContentCollapsed));
+        } catch {
+        }
+        const content = panel?.querySelector(".mc-debug-content");
+        if (content) {
+          content.hidden = panelContentCollapsed;
+        }
+        syncPanelCollapseButton();
       });
       return button;
     };
     const render3 = () => {
       if (!panel) return;
-      syncAccordionButton();
+      hideTooltip();
+      syncPanelCollapseButton();
       const content = panel.querySelector(".mc-debug-content");
       if (!content) return;
+      content.hidden = panelContentCollapsed;
       content.innerHTML = "";
       content.appendChild(motionControl());
       let rendered = false;
       let sectionCount = 0;
-      schemas.forEach((schema) => {
+      orderedSchemas().forEach((schema) => {
         const instances = typeof schema.instances === "function" ? (schema.instances() || []).filter(Boolean) : [];
         const hasStats = Array.isArray(schema.stats) && schema.stats.length;
         if (!instances.length && !hasStats) return;
@@ -7677,13 +7927,81 @@
           <path d="M41.1864 50.5709C43.1753 50.5709 44.7876 48.9662 44.7876 46.9868C44.7876 45.0073 43.1753 43.4026 41.1864 43.4026C39.1976 43.4026 37.5853 45.0073 37.5853 46.9868C37.5853 48.9662 39.1976 50.5709 41.1864 50.5709Z" fill="currentColor"/>
           <path d="M41.1864 58.2798C30.0578 58.2798 23.6153 48.9754 23.3464 48.5795L24.2635 46.8092L23.3464 45.039C23.6153 44.6431 30.0578 35.3387 41.1864 35.3387C52.3151 35.3387 58.7576 44.6431 59.0264 45.039L58.1094 46.8092L59.0264 48.5795C58.7576 48.9754 52.3151 58.2798 41.1864 58.2798ZM24.2635 46.8097C26.2639 48.8589 36.0107 51.9549 41.1864 51.9549C46.3594 51.9549 56.1057 48.8618 58.1094 46.8092C56.1057 44.7567 46.3594 41.6636 41.1864 41.6636C36.0131 41.6636 26.2669 44.7571 24.2635 46.8097Z" fill="white"/>
         </svg>
+        <span class="mc-debug-page"></span>
         <div class="mc-debug-brand-actions"></div>
       </div>
       <div class="mc-debug-content"></div>
+      <div class="mc-debug-footer">
+        <span>It's not a conspiracy.</span>
+        <div class="mc-debug-footer-actions">
+          <button class="mc-debug-export mc-debug-import" type="button" aria-label="Import JSON" data-tooltip="Import JSON settings">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M12 3V15M12 15L7.5 10.5M12 15L16.5 10.5M4 16V20H20V16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="mc-debug-export mc-debug-export-file" type="button" aria-label="Export JSON" data-tooltip="Export JSON settings">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M12 15V3M12 3L7.5 7.5M12 3L16.5 7.5M4 16V20H20V16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="mc-debug-export mc-debug-reset" type="button" aria-label="Reset settings" data-tooltip="Reset saved settings">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M20 6V11H15M18.364 15A8 8 0 1 1 20 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <input class="mc-debug-import-file" type="file" accept="application/json,.json" hidden>
+        </div>
+      </div>
     `;
       panel.style.display = "none";
       document.body.appendChild(panel);
-      panel.querySelector(".mc-debug-brand-actions")?.appendChild(accordionControl());
+      const pageName = currentPageName();
+      const pageLabel = panel.querySelector(".mc-debug-page");
+      if (pageLabel) {
+        pageLabel.textContent = pageName;
+        pageLabel.title = pageName;
+      }
+      panel.querySelectorAll("[data-tooltip]").forEach(attachTooltip);
+      panel.querySelector(".mc-debug-brand-actions")?.appendChild(panelCollapseControl());
+      panel.querySelector(".mc-debug-export-file")?.addEventListener("click", exportSettings);
+      const importButton = panel.querySelector(".mc-debug-import");
+      const importFile = panel.querySelector(".mc-debug-import-file");
+      importButton?.addEventListener("click", () => importFile?.click());
+      importFile?.addEventListener("change", () => {
+        const [file] = [...importFile.files || []];
+        if (file) {
+          void importSettings(file);
+        }
+        importFile.value = "";
+      });
+      panel.querySelector(".mc-debug-reset")?.addEventListener("click", resetSettings);
+      const dragHandle = panel.querySelector(".mc-debug-brand");
+      dragHandle?.addEventListener("pointerdown", (event) => {
+        if (event.target instanceof Element && event.target.closest("button")) {
+          return;
+        }
+        const currentPanel = panel;
+        if (!currentPanel) {
+          return;
+        }
+        const bounds = currentPanel.getBoundingClientRect();
+        const offsetX = event.clientX - bounds.left;
+        const offsetY = event.clientY - bounds.top;
+        currentPanel.style.left = `${bounds.left}px`;
+        currentPanel.style.top = `${bounds.top}px`;
+        currentPanel.style.right = "auto";
+        dragHandle.setPointerCapture(event.pointerId);
+        const move = (moveEvent) => {
+          const maxLeft = Math.max(0, window.innerWidth - bounds.width);
+          const maxTop = Math.max(0, window.innerHeight - bounds.height);
+          const left = Math.min(maxLeft, Math.max(0, moveEvent.clientX - offsetX));
+          const top = Math.min(maxTop, Math.max(0, moveEvent.clientY - offsetY));
+          currentPanel.style.left = `${left}px`;
+          currentPanel.style.top = `${top}px`;
+        };
+        const stop = () => {
+          dragHandle.removeEventListener("pointermove", move);
+          dragHandle.removeEventListener("pointerup", stop);
+          dragHandle.removeEventListener("pointercancel", stop);
+        };
+        dragHandle.addEventListener("pointermove", move);
+        dragHandle.addEventListener("pointerup", stop);
+        dragHandle.addEventListener("pointercancel", stop);
+      });
     };
     const open = () => {
       createPanel();
@@ -7697,6 +8015,7 @@
     const close = () => {
       if (!panel) return;
       isOpen = false;
+      hideTooltip();
       panel.style.display = "none";
     };
     const toggle = () => {
@@ -7709,6 +8028,7 @@
     const register = (schema) => {
       if (!schema?.id) return;
       schemas.set(schema.id, schema);
+      hydrateAvailableSettings();
       if (isOpen) render3();
     };
     const unregister = (id) => {
@@ -7716,6 +8036,7 @@
       if (isOpen) render3();
     };
     const refresh = () => {
+      hydrateAvailableSettings();
       if (isOpen) render3();
     };
     document.addEventListener("keydown", (event) => {
@@ -9055,8 +9376,24 @@
     }
   };
 
+  // src/digerati/core/fonts.ts
+  var DEFAULT_TIMEOUT = 2e3;
+  var waitForFonts = (timeout = DEFAULT_TIMEOUT) => {
+    if (!document.fonts?.ready) {
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+      const timer = window.setTimeout(resolve, timeout);
+      void document.fonts.ready.finally(() => {
+        window.clearTimeout(timer);
+        resolve();
+      });
+    });
+  };
+
   // src/meloncart/effects/colour-reveal.ts
   var SELECTOR = "[mc-colour-reveal]";
+  var OWNER_ATTRIBUTE = "mc-animation-owner";
   var DEFAULTS2 = {
     duration: 0.8,
     colourDuration: 0.8,
@@ -9064,7 +9401,7 @@
     colour: "#ffffff",
     start: "top bottom"
   };
-  var logger5 = createLogger("melon", "colour-reveal");
+  var logger5 = createLogger("melon", "colour-reveal", { debug: isMCDebugEnabled });
   var ensureMC4 = () => {
     window.MC ||= {};
     return window.MC;
@@ -9094,6 +9431,7 @@
     settings;
     split;
     timeline;
+    lastLineStart;
     ready;
     initialising;
     constructor(component, index) {
@@ -9112,9 +9450,13 @@
       };
       this.split = null;
       this.timeline = null;
+      this.lastLineStart = 0;
       this.ready = false;
       this.initialising = false;
       this.component.style.setProperty("--mc-colour-reveal", this.settings.colour);
+    }
+    get parentOwned() {
+      return this.component.hasAttribute(OWNER_ATTRIBUTE);
     }
     get(key) {
       return this.settings[key];
@@ -9217,17 +9559,27 @@
       playImmediately
     }) {
       if (this.initialising) {
-        return this.timeline;
+        logger5.debug("Build already in progress", { element: this.component });
+        return {
+          timeline: this.timeline,
+          lastLineStart: this.lastLineStart,
+          lastLineDuration: Math.max(this.settings.duration, 0.2 + this.settings.colourDuration)
+        };
       }
       this.initialising = true;
+      logger5.debug("Building animation", {
+        element: this.component,
+        parentOwned: this.parentOwned,
+        attachScrollTrigger,
+        paused
+      });
       this.destroyAnimation();
-      if (document.fonts?.ready) {
-        await document.fonts.ready;
-      }
+      await waitForFonts();
+      logger5.debug("Fonts ready or timed out", { element: this.component });
       if (reducedMotionEnabled()) {
         this.initialising = false;
         this.showFinal();
-        return null;
+        return { timeline: null, lastLineStart: 0, lastLineDuration: 0 };
       }
       this.component.style.setProperty("--mc-colour-reveal", this.settings.colour);
       this.component.style.removeProperty("--clip-progress");
@@ -9238,6 +9590,7 @@
         mask: "lines",
         linesClass: "line",
         onSplit: (self) => {
+          this.lastLineStart = self.lines.length > 1 ? this.settings.stagger : 0;
           const timeline2 = this.createGSAPTimeline({
             attachScrollTrigger,
             paused
@@ -9282,7 +9635,12 @@
       });
       this.ready = true;
       this.initialising = false;
-      return this.timeline;
+      logger5.debug("Animation built", { element: this.component, timeline: this.timeline });
+      return {
+        timeline: this.timeline,
+        lastLineStart: this.lastLineStart,
+        lastLineDuration: Math.max(this.settings.duration, 0.2 + this.settings.colourDuration)
+      };
     }
     /**
      * Creates a paused colour reveal timeline without its standalone ScrollTrigger.
@@ -9311,6 +9669,9 @@
         this.showFinal();
         return;
       }
+      if (this.parentOwned) {
+        return;
+      }
       await this.buildAnimated({
         attachScrollTrigger: true,
         paused: false,
@@ -9330,6 +9691,10 @@
     async init() {
       if (reducedMotionEnabled()) {
         this.showFinal();
+        return;
+      }
+      if (this.parentOwned) {
+        logger5.debug("Standalone initialisation deferred to parent", { element: this.component });
         return;
       }
       await this.buildAnimated({
@@ -9352,7 +9717,8 @@
       id: "colourReveal",
       label: "Colour Reveal",
       instances: () => ensureMC4().colourReveal || [],
-      instanceLabel: (_instance, index, total) => total > 1 ? `Heading ${index + 1}` : "Heading",
+      orderElement: () => ensureMC4().colourReveal?.[0]?.component || null,
+      instanceLabel: (instance) => instance.component.textContent?.replace(/\s+/g, " ").trim() || "Heading",
       controls: [
         {
           type: "text",
@@ -9442,6 +9808,7 @@
 
   // src/meloncart/effects/depth.ts
   var SELECTOR2 = "img[mc-depth-reveal]";
+  var OWNER_ATTRIBUTE2 = "mc-animation-owner";
   var DEFAULTS3 = {
     trace: 1.35,
     lineWidth: 1,
@@ -9461,7 +9828,7 @@
     direction: 1,
     duration: 2850
   };
-  var logger6 = createLogger("melon", "depth");
+  var logger6 = createLogger("melon", "depth", { debug: isMCDebugEnabled });
   var clamp3 = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
   var ease = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   var ensureMC5 = () => {
@@ -9669,15 +10036,23 @@
       window.addEventListener("mcMotionPreferenceChange", this.boundMotionChange);
       void this.init();
     }
+    get parentOwned() {
+      return this.image.hasAttribute(OWNER_ATTRIBUTE2);
+    }
     async init() {
       if (motion().reduced) {
         this.showStaticImage();
         return;
       }
+      if (this.parentOwned) {
+        logger6.debug("Standalone initialisation deferred to parent", { image: this.image });
+        return;
+      }
       await this.loadEffect();
     }
-    async loadEffect() {
+    async loadEffect(startReveal = true) {
       if (this.effectLoaded || this.loadingEffect || motion().reduced) return;
+      logger6.debug("Loading effect", { image: this.image, startReveal });
       if (!this.depthSrc) {
         logger6.warn("Missing mc-depth-map:", this.image);
         this.showStaticImage();
@@ -9732,8 +10107,9 @@
         await waitForWindowLoad();
         await nextFrame();
         await nextFrame();
-        if (!motion().reduced) this.startReveal();
+        if (!motion().reduced && startReveal) this.startReveal();
         logger6.info("Initialised");
+        logger6.debug("Effect ready", { image: this.image, startReveal });
       } catch (error2) {
         this.loadingEffect = false;
         logger6.error("Initialisation failed:", error2, this.image);
@@ -9753,7 +10129,10 @@
         return;
       }
       if (!this.effectLoaded) {
-        await this.loadEffect();
+        await this.loadEffect(!this.parentOwned);
+        return;
+      }
+      if (this.parentOwned) {
         return;
       }
       this.reducedStatic = false;
@@ -9837,15 +10216,47 @@
       this.autoTrackingEnabled = this.settings.autoX !== 0 || this.settings.autoY !== 0 || this.settings.autoZoom !== 0;
       if (!motion().reduced) this.requestFrame();
     }
-    replay() {
+    async prepare() {
+      if (motion().reduced) {
+        this.showStaticImage();
+        return;
+      }
+      logger6.debug("Preparing parent-owned effect", { image: this.image });
+      await this.loadEffect(false);
+      logger6.debug("Parent-owned effect prepared", {
+        image: this.image,
+        effectLoaded: this.effectLoaded,
+        ready: this.ready
+      });
+    }
+    resetForParent() {
       if (motion().reduced) {
         this.showStaticImage();
         return;
       }
       if (!this.effectLoaded) {
-        void this.loadEffect();
         return;
       }
+      this.resetRevealState();
+      this.image.style.opacity = "0";
+      if (this.canvas) {
+        this.canvas.style.display = "block";
+        this.canvas.style.opacity = "0";
+      }
+      logger6.debug("Reset parent-owned effect", { image: this.image });
+    }
+    async replay() {
+      if (motion().reduced) {
+        this.showStaticImage();
+        return;
+      }
+      if (!this.effectLoaded) {
+        await this.loadEffect(false);
+      }
+      if (!this.effectLoaded) {
+        return;
+      }
+      logger6.debug("Starting reveal", { image: this.image });
       this.image.style.opacity = "0";
       if (this.canvas) this.canvas.style.display = "block";
       this.startReveal();
@@ -10756,6 +11167,7 @@ void main() {
         id: "depth",
         label: "Depth",
         instances: () => ensureMC5().depth || [],
+        orderElement: () => ensureMC5().depth?.[0]?.image || null,
         instanceLabel: "Depth Hero",
         controls: [
           {
@@ -10842,18 +11254,544 @@ void main() {
     }
   };
 
+  // src/meloncart/effects/hero-sequence.ts
+  var SEQUENCE_SELECTOR2 = "[mc-hero-sequence]";
+  var OWNER_VALUE = "hero-sequence";
+  var logger7 = createLogger("melon", "hero-sequence", { debug: isMCDebugEnabled });
+  var ensureMC6 = () => {
+    window.MC ||= {};
+    return window.MC;
+  };
+  var reducedMotionEnabled2 = () => window.MC?.motion?.reduced ?? false;
+  var registerDebug2 = (schema) => {
+    const mc = ensureMC6();
+    if (mc.debug?.register) {
+      mc.debug.register(schema);
+      return;
+    }
+    mc.__debugQueue ||= [];
+    mc.__debugQueue.push(schema);
+  };
+  var claimMCHeroSequenceOwnership = () => {
+    let claimed = 0;
+    document.querySelectorAll(SEQUENCE_SELECTOR2).forEach((sequence) => {
+      sequence.querySelectorAll("img[mc-depth-reveal], [mc-colour-reveal], [mc-underline]").forEach((child) => {
+        if (child.closest(SEQUENCE_SELECTOR2) !== sequence || child.hasAttribute("mc-animation-owner")) {
+          return;
+        }
+        child.setAttribute("mc-animation-owner", OWNER_VALUE);
+        claimed += 1;
+      });
+    });
+    logger7.debug("Claimed child ownership", { claimed });
+  };
+  var MCHeroSequence = class {
+    element;
+    index;
+    settings = {
+      eyebrowStart: 0.25,
+      headingStart: 0.45,
+      underlineStart: null,
+      visualStart: null,
+      copyStart: null,
+      ctaStart: null,
+      footnoteStart: null,
+      bodyDuration: 0.28,
+      bodyStagger: 0.08,
+      underlineDurationOffset: 0.12,
+      imageScrollDistance: 50
+    };
+    timeline = null;
+    imageScrollTween = null;
+    bodySplit = null;
+    rebuildFrame = null;
+    initialising = false;
+    hasStartedPlayback = false;
+    constructor(element, index) {
+      this.element = element;
+      this.index = index;
+    }
+    get(key) {
+      if (key === "visualStart" && !this.depth && !this.child("[mc-hero-image]")) {
+        return null;
+      }
+      if (key === "imageScrollDistance" && !this.child("[mc-hero-image]")) {
+        return null;
+      }
+      if (key === "footnoteStart" && !this.child("[mc-hero-footnote]")) {
+        return null;
+      }
+      return this.settings[key];
+    }
+    set(key, value) {
+      if (!(key in this.settings)) return;
+      const number = Number(value);
+      if (!Number.isFinite(number)) return;
+      this.settings[key] = Math.max(0, number);
+      void this.rebuild(true);
+    }
+    resolveCue(key, fallback) {
+      const current = this.settings[key];
+      if (current !== null) {
+        return current;
+      }
+      const resolved = Math.max(0, fallback);
+      this.settings[key] = resolved;
+      return resolved;
+    }
+    child(selector3) {
+      const candidate = this.element.querySelector(selector3);
+      return candidate?.closest(SEQUENCE_SELECTOR2) === this.element ? candidate : null;
+    }
+    get depth() {
+      return this.child("img[mc-depth-reveal]")?.__mcDepthReveal || null;
+    }
+    get colourReveal() {
+      return this.child("[mc-colour-reveal]")?.__mcColourReveal || null;
+    }
+    get underline() {
+      return this.child("[mc-underline]")?.__mcUnderline || null;
+    }
+    killTimeline() {
+      this.timeline?.kill();
+      this.timeline = null;
+      this.imageScrollTween?.scrollTrigger?.kill();
+      this.imageScrollTween?.kill();
+      this.imageScrollTween = null;
+      this.bodySplit?.revert();
+      this.bodySplit = null;
+    }
+    createImageScrollMotion(image) {
+      this.imageScrollTween?.scrollTrigger?.kill();
+      this.imageScrollTween?.kill();
+      this.imageScrollTween = gsapWithCSS.to(image, {
+        x: -this.settings.imageScrollDistance,
+        ease: "none",
+        scrollTrigger: {
+          trigger: this.element,
+          start: "top top",
+          end: "bottom top",
+          scrub: true
+        }
+      });
+      logger7.debug("Hero image scroll motion created", {
+        sequence: this.index + 1,
+        image
+      });
+    }
+    showFinal() {
+      this.killTimeline();
+      this.depth?.showStaticImage();
+      this.colourReveal?.showFinal();
+      this.underline?.showFinal();
+      const finalElements = [
+        this.child("[mc-hero-eyebrow]"),
+        this.child("[mc-hero-body]"),
+        this.child("[mc-hero-cta]"),
+        this.child("[mc-hero-footnote]"),
+        this.child("[mc-hero-image]")
+      ].filter(Boolean);
+      gsapWithCSS.set(finalElements, { autoAlpha: 1, clearProps: "transform" });
+    }
+    async rebuild(playImmediately = false) {
+      if (this.initialising) return;
+      this.initialising = true;
+      this.killTimeline();
+      logger7.debug("Building sequence", {
+        sequence: this.index + 1,
+        playImmediately,
+        reducedMotion: reducedMotionEnabled2()
+      });
+      if (reducedMotionEnabled2()) {
+        this.showFinal();
+        if (playImmediately && ensureMC6().preloader?.active) {
+          ensureMC6().preloader?.heroReady();
+        }
+        this.initialising = false;
+        return;
+      }
+      const eyebrow = this.child("[mc-hero-eyebrow]");
+      const body = this.child("[mc-hero-body]");
+      const cta = this.child("[mc-hero-cta]");
+      const footnote = this.child("[mc-hero-footnote]");
+      const image = this.child("[mc-hero-image]");
+      logger7.debug("Resolved hero content elements", {
+        sequence: this.index + 1,
+        eyebrow: Boolean(eyebrow),
+        body: Boolean(body),
+        cta: Boolean(cta),
+        footnote: Boolean(footnote),
+        image: Boolean(image)
+      });
+      const [depth, colourReveal, underline] = [this.depth, this.colourReveal, this.underline];
+      logger7.debug("Resolved child controllers", {
+        sequence: this.index + 1,
+        depth: Boolean(depth),
+        colourReveal: Boolean(colourReveal),
+        underline: Boolean(underline)
+      });
+      await depth?.prepare();
+      depth?.resetForParent();
+      logger7.debug("Depth preparation complete", {
+        sequence: this.index + 1,
+        effectLoaded: depth?.effectLoaded,
+        ready: depth?.ready
+      });
+      let headingTimeline;
+      let headingLastLineStart = 0;
+      let headingLastLineDuration = 0;
+      try {
+        const heading = await colourReveal?.createTimeline();
+        headingTimeline = heading?.timeline;
+        headingLastLineStart = heading?.lastLineStart || 0;
+        headingLastLineDuration = heading?.lastLineDuration || 0;
+        logger7.debug("Heading timeline prepared", {
+          sequence: this.index + 1,
+          timeline: Boolean(headingTimeline),
+          lastLineStart: headingLastLineStart,
+          lastLineDuration: headingLastLineDuration
+        });
+      } catch (error2) {
+        logger7.error("Heading Colour Reveal could not be prepared:", error2);
+      }
+      if (reducedMotionEnabled2()) {
+        this.showFinal();
+        if (playImmediately && ensureMC6().preloader?.active) {
+          ensureMC6().preloader?.heroReady();
+        }
+        this.initialising = false;
+        return;
+      }
+      if (body) {
+        try {
+          await waitForFonts();
+          this.bodySplit = SplitText.create(body, { type: "lines", mask: "lines" });
+          logger7.debug("Body lines prepared", {
+            sequence: this.index + 1,
+            lines: this.bodySplit.lines.length
+          });
+        } catch (error2) {
+          this.bodySplit = null;
+          logger7.error("Body line split failed; using the body fade fallback.", {
+            sequence: this.index + 1,
+            error: error2
+          });
+        }
+      }
+      const bodyLines = this.bodySplit?.lines || [];
+      const timeline2 = gsapWithCSS.timeline({ paused: true });
+      this.timeline = timeline2;
+      if (eyebrow) {
+        timeline2.fromTo(
+          eyebrow,
+          { autoAlpha: 0 },
+          { autoAlpha: 1, duration: 0.22, ease: "power1.out" },
+          this.settings.eyebrowStart
+        );
+      }
+      if (headingTimeline && colourReveal) {
+        timeline2.add(headingTimeline, this.settings.headingStart);
+        headingTimeline.paused(false);
+        timeline2.set(colourReveal.component, { autoAlpha: 1 }, this.settings.headingStart);
+      }
+      const underlineTimeline = underline?.createTimeline({
+        attachScrollTrigger: false,
+        paused: true,
+        duration: headingLastLineDuration ? headingLastLineDuration + this.settings.underlineDurationOffset : void 0
+      });
+      const underlinePosition = this.resolveCue(
+        "underlineStart",
+        this.settings.headingStart + headingLastLineStart
+      );
+      const visualPosition = this.resolveCue(
+        "visualStart",
+        this.settings.headingStart + headingLastLineStart
+      );
+      timeline2.call(() => void depth?.replay(), [], visualPosition);
+      if (image) {
+        timeline2.fromTo(
+          image,
+          { autoAlpha: 0, x: 48 },
+          { autoAlpha: 1, x: 0, duration: 0.6, ease: "power3.out" },
+          visualPosition
+        );
+      }
+      if (underlineTimeline) {
+        timeline2.add(underlineTimeline, underlinePosition);
+        underlineTimeline.paused(false);
+      }
+      const bodyPosition = this.resolveCue(
+        "copyStart",
+        underlineTimeline ? underlinePosition + underlineTimeline.duration() + 0.1 : this.settings.headingStart + 0.1
+      );
+      if (bodyLines.length) {
+        timeline2.set(body, { autoAlpha: 1 }, bodyPosition);
+        timeline2.fromTo(
+          bodyLines,
+          { autoAlpha: 0, y: 12 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: this.settings.bodyDuration,
+            stagger: this.settings.bodyStagger,
+            ease: "power1.out"
+          },
+          bodyPosition
+        );
+      } else if (body) {
+        timeline2.fromTo(
+          body,
+          { autoAlpha: 0, y: 12 },
+          { autoAlpha: 1, y: 0, duration: this.settings.bodyDuration, ease: "power1.out" },
+          bodyPosition
+        );
+      }
+      logger7.debug("Hero content animation scheduled", {
+        sequence: this.index + 1,
+        body: Boolean(body),
+        bodyLines: bodyLines.length,
+        bodyPosition,
+        cta: Boolean(cta)
+      });
+      const ctaPosition = this.resolveCue("ctaStart", bodyPosition + 0.12);
+      if (cta) {
+        timeline2.fromTo(
+          cta,
+          { autoAlpha: 0, y: 12 },
+          { autoAlpha: 1, y: 0, duration: 0.28, ease: "power1.out" },
+          ctaPosition
+        );
+      }
+      if (footnote) {
+        timeline2.fromTo(
+          footnote,
+          { autoAlpha: 0, y: 8 },
+          { autoAlpha: 1, y: 0, duration: 0.24, ease: "power1.out" },
+          this.resolveCue("footnoteStart", ctaPosition + 0.1)
+        );
+      }
+      headingTimeline?.totalTime(0, true);
+      gsapWithCSS.set([eyebrow, colourReveal?.component, body, cta, footnote, image].filter(Boolean), {
+        autoAlpha: 0
+      });
+      if (bodyLines.length) {
+        gsapWithCSS.set(bodyLines, { autoAlpha: 0, y: 12 });
+      } else if (body) {
+        gsapWithCSS.set(body, { autoAlpha: 0, y: 12 });
+      }
+      timeline2.totalTime(0, true);
+      this.initialising = false;
+      ScrollTrigger2.refresh();
+      window.MC?.debug?.refresh();
+      logger7.debug("Sequence timeline built", {
+        sequence: this.index + 1,
+        duration: timeline2.duration()
+      });
+      const playSequence = () => {
+        if (this.timeline !== timeline2 || reducedMotionEnabled2()) {
+          return;
+        }
+        timeline2.play(0);
+        this.hasStartedPlayback = true;
+        logger7.debug("Sequence playback started", { sequence: this.index + 1 });
+      };
+      if (playImmediately) {
+        const { preloader } = ensureMC6();
+        if (preloader?.active) {
+          preloader.heroReady(playSequence);
+          logger7.debug("Sequence playback waiting for preloader dismissal", {
+            sequence: this.index + 1
+          });
+        } else {
+          playSequence();
+        }
+      }
+      if (image) {
+        timeline2.eventCallback("onComplete", () => this.createImageScrollMotion(image));
+      }
+    }
+    replay() {
+      void this.rebuild(true);
+    }
+    scheduleRebuild = () => {
+      if (this.hasStartedPlayback) {
+        logger7.debug("Skipping resize rebuild after sequence playback has started", {
+          sequence: this.index + 1
+        });
+        return;
+      }
+      if (this.rebuildFrame !== null) {
+        cancelAnimationFrame(this.rebuildFrame);
+      }
+      this.rebuildFrame = requestAnimationFrame(() => {
+        this.rebuildFrame = null;
+        void this.rebuild(true);
+      });
+    };
+    async init() {
+      await this.rebuild(true);
+    }
+  };
+  var initMCHeroSequence = () => {
+    const initialise = () => {
+      const mc = ensureMC6();
+      const elements = [...document.querySelectorAll(SEQUENCE_SELECTOR2)];
+      const sequences = elements.map((element, index) => new MCHeroSequence(element, index));
+      mc.heroSequences = sequences;
+      logger7.debug("Found hero sequences", { count: sequences.length, elements });
+      registerDebug2({
+        id: "hero-sequences",
+        label: "Hero Sequence",
+        order: -1,
+        instances: () => ensureMC6().heroSequences || [],
+        orderElement: () => ensureMC6().heroSequences?.[0]?.element || null,
+        instanceLabel: (_instance, index, total) => total > 1 ? `Hero ${index + 1}` : "Hero",
+        controls: [
+          {
+            type: "range",
+            key: "eyebrowStart",
+            label: "Eyebrow Start",
+            description: "Starts the eyebrow fade at this time from the beginning of the Hero.",
+            min: 0,
+            max: 4,
+            step: 0.05,
+            suffix: "s",
+            event: "change"
+          },
+          {
+            type: "range",
+            key: "headingStart",
+            label: "Heading Start",
+            description: "Starts the heading Colour Reveal at this time from the beginning of the Hero.",
+            min: 0,
+            max: 4,
+            step: 0.05,
+            suffix: "s",
+            event: "change"
+          },
+          {
+            type: "range",
+            key: "visualStart",
+            label: "Visual Start",
+            description: "Starts the Hero Depth Reveal or image entrance at this time from the beginning of the Hero.",
+            min: 0,
+            max: 4,
+            step: 0.05,
+            suffix: "s",
+            event: "change"
+          },
+          {
+            type: "range",
+            key: "imageScrollDistance",
+            label: "Image Scroll Distance",
+            description: "Sets how far the workflow Hero image moves left while the Hero scrolls out.",
+            min: 0,
+            max: 160,
+            step: 1,
+            suffix: "px",
+            event: "change"
+          },
+          {
+            type: "range",
+            key: "underlineStart",
+            label: "Underline Start",
+            description: "Starts the Hero underline wipe at this time from the beginning of the Hero.",
+            min: 0,
+            max: 4,
+            step: 0.05,
+            suffix: "s",
+            event: "change"
+          },
+          {
+            type: "range",
+            key: "underlineDurationOffset",
+            label: "Underline Extend",
+            description: "Extends the Hero underline beyond the final heading line reveal duration.",
+            min: 0,
+            max: 1,
+            step: 0.01,
+            suffix: "s",
+            event: "change"
+          },
+          {
+            type: "range",
+            key: "copyStart",
+            label: "Body Copy Start",
+            description: "Starts the body-copy entrance at this time from the beginning of the Hero.",
+            min: 0,
+            max: 4,
+            step: 0.05,
+            suffix: "s",
+            event: "change"
+          },
+          {
+            type: "range",
+            key: "bodyStagger",
+            label: "Body Copy Line Stagger",
+            description: "Sets the delay between each body-copy line appearing.",
+            min: 0,
+            max: 0.5,
+            step: 0.01,
+            suffix: "s",
+            event: "change"
+          },
+          {
+            type: "range",
+            key: "ctaStart",
+            label: "CTA Start",
+            description: "Starts the Hero call-to-action entrance at this time from the beginning of the Hero.",
+            min: 0,
+            max: 4,
+            step: 0.05,
+            suffix: "s",
+            event: "change"
+          },
+          {
+            type: "range",
+            key: "footnoteStart",
+            label: "Footnote Start",
+            description: "Starts the Hero footnote entrance at this time from the beginning of the Hero.",
+            min: 0,
+            max: 4,
+            step: 0.05,
+            suffix: "s",
+            event: "change"
+          },
+          { type: "button", label: "Replay", action: "replay" }
+        ]
+      });
+      sequences.forEach((sequence) => void sequence.init());
+      window.addEventListener("mcMotionPreferenceChange", () => {
+        sequences.forEach((sequence) => void sequence.rebuild(!reducedMotionEnabled2()));
+      });
+      window.addEventListener(
+        "resize",
+        () => sequences.forEach((sequence) => sequence.scheduleRebuild()),
+        {
+          passive: true
+        }
+      );
+      logger7.info(`Initialised ${sequences.length} sequence(s).`);
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initialise, { once: true });
+      return;
+    }
+    initialise();
+  };
+
   // src/meloncart/effects/illustration.ts
   var DEFAULT_DURATION = 1;
   var DEFAULT_START = "top 75%";
   var DEFAULT_STAGGER = 0.25;
   var EASE = "power3.out";
-  var logger7 = createLogger("melon", "illustration");
-  var ensureMC6 = () => {
+  var logger8 = createLogger("melon", "illustration");
+  var ensureMC7 = () => {
     window.MC ||= {};
     return window.MC;
   };
   var registerDebugSchema3 = (schema) => {
-    const mc = ensureMC6();
+    const mc = ensureMC7();
     if (mc.debug?.register) {
       mc.debug.register(schema);
       return;
@@ -11275,11 +12213,11 @@ void main() {
       case "foundation-ownership":
         return createFoundationOwnershipAnimation(element, duration);
       default:
-        logger7.warn(`Unknown illustration: ${type}`, element);
+        logger8.warn(`Unknown illustration: ${type}`, element);
         return null;
     }
   };
-  var reducedMotionEnabled2 = () => {
+  var reducedMotionEnabled3 = () => {
     if (window.MC?.motion && typeof window.MC.motion.reduced === "boolean") {
       return window.MC.motion.reduced;
     }
@@ -11355,7 +12293,7 @@ void main() {
       section.dataset.mcIllustrationSequenceReady = "1";
     };
     const rebuild = () => {
-      if (reducedMotionEnabled2()) {
+      if (reducedMotionEnabled3()) {
         showFinal();
       } else {
         buildAnimated();
@@ -11401,7 +12339,7 @@ void main() {
       rebuild,
       showFinal,
       replay() {
-        if (reducedMotionEnabled2()) {
+        if (reducedMotionEnabled3()) {
           showFinal();
           return;
         }
@@ -11416,13 +12354,13 @@ void main() {
     };
     rebuild();
     if (settings.debug) {
-      logger7.info("Sequence ready", {
+      logger8.info("Sequence ready", {
         sequence: sectionIndex + 1,
         illustrations: illustrations.map((element) => element.getAttribute("mc-illustration")),
         duration: settings.duration,
         stagger: settings.stagger,
         start: settings.start,
-        reducedMotion: reducedMotionEnabled2()
+        reducedMotion: reducedMotionEnabled3()
       });
     }
     return controller;
@@ -11434,13 +12372,13 @@ void main() {
       const controller = createSequenceController(section, sectionIndex);
       sequenceControllers2.push(controller);
     });
-    const mc = ensureMC6();
+    const mc = ensureMC7();
     mc.illustrationSequences = sequenceControllers2;
-    logger7.info(`Registered ${sequenceControllers2.length} sequence(s).`);
+    logger8.info(`Registered ${sequenceControllers2.length} sequence(s).`);
     registerDebugSchema3({
       id: "illustration-sequences",
       label: "Illustration Sequence",
-      instances: () => ensureMC6().illustrationSequences || [],
+      instances: () => ensureMC7().illustrationSequences || [],
       instanceLabel: "Sequence",
       controls: [
         {
@@ -11515,9 +12453,249 @@ void main() {
     }
   };
 
+  // src/meloncart/effects/underline.ts
+  var SELECTOR3 = "[mc-underline]";
+  var OWNER_ATTRIBUTE3 = "mc-animation-owner";
+  var logger9 = createLogger("melon", "underline", { debug: isMCDebugEnabled });
+  var DEFAULTS4 = {
+    duration: 0.55,
+    start: "top 80%"
+  };
+  var ensureMC8 = () => {
+    window.MC ||= {};
+    return window.MC;
+  };
+  var reducedMotionEnabled4 = () => window.MC?.motion?.reduced ?? false;
+  var numberAttribute3 = (element, name, fallback) => {
+    const value = Number(element.getAttribute(name));
+    return Number.isFinite(value) ? value : fallback;
+  };
+  var registerDebug3 = (schema) => {
+    const mc = ensureMC8();
+    if (mc.debug?.register) {
+      mc.debug.register(schema);
+      return;
+    }
+    mc.__debugQueue ||= [];
+    mc.__debugQueue.push(schema);
+  };
+  var MCUnderline = class {
+    element;
+    settings;
+    timeline = null;
+    constructor(element) {
+      this.element = element;
+      this.settings = {
+        duration: Math.max(
+          0.01,
+          numberAttribute3(element, "mc-underline-duration", DEFAULTS4.duration)
+        ),
+        start: element.getAttribute("mc-underline-start") || DEFAULTS4.start
+      };
+    }
+    get parentOwned() {
+      return this.element.hasAttribute(OWNER_ATTRIBUTE3);
+    }
+    get(key) {
+      return this.settings[key];
+    }
+    set(key, rawValue) {
+      if (key === "start") {
+        const start = String(rawValue).trim();
+        if (!start) return;
+        this.settings.start = start;
+        this.element.setAttribute("mc-underline-start", start);
+      } else if (key === "duration") {
+        const duration = Number(rawValue);
+        if (!Number.isFinite(duration)) return;
+        this.settings.duration = Math.max(0.01, duration);
+        this.element.setAttribute("mc-underline-duration", String(this.settings.duration));
+      } else {
+        return;
+      }
+      if (!this.parentOwned) {
+        this.init();
+      }
+    }
+    destroy() {
+      this.timeline?.scrollTrigger?.kill();
+      this.timeline?.kill();
+      this.timeline = null;
+    }
+    showFinal() {
+      this.destroy();
+      gsapWithCSS.set(this.element, { clearProps: "clipPath" });
+    }
+    createTimeline({
+      attachScrollTrigger,
+      paused,
+      duration = this.settings.duration
+    }) {
+      this.destroy();
+      const timeline2 = gsapWithCSS.timeline({
+        paused,
+        scrollTrigger: attachScrollTrigger ? {
+          trigger: this.element,
+          start: this.settings.start,
+          markers: getScrollTriggerDebug(),
+          toggleActions: "play none none reset",
+          onEnter: () => logger9.debug("Scroll trigger entered", { element: this.element })
+        } : void 0
+      });
+      timeline2.fromTo(
+        this.element,
+        { clipPath: "inset(0 100% 0 0)" },
+        { clipPath: "inset(0 0% 0 0)", duration, ease: "power3.out" }
+      );
+      this.timeline = timeline2;
+      logger9.debug("Timeline created", { element: this.element, parentOwned: this.parentOwned });
+      return timeline2;
+    }
+    replay() {
+      if (reducedMotionEnabled4()) {
+        this.showFinal();
+        return;
+      }
+      if (this.parentOwned) {
+        return;
+      }
+      this.createTimeline({ attachScrollTrigger: false, paused: false }).play(0);
+    }
+    init() {
+      if (reducedMotionEnabled4()) {
+        this.showFinal();
+        return;
+      }
+      if (this.parentOwned) {
+        logger9.debug("Standalone initialisation deferred to parent", { element: this.element });
+        return;
+      }
+      this.createTimeline({ attachScrollTrigger: true, paused: false });
+    }
+    motionChanged() {
+      this.init();
+    }
+  };
+  var MCUnderlineGroup = class {
+    underlines;
+    settings;
+    constructor(underlines) {
+      this.underlines = underlines;
+      const first = underlines[0];
+      this.settings = {
+        enabled: true,
+        duration: first?.settings.duration || DEFAULTS4.duration,
+        start: first?.settings.start || DEFAULTS4.start
+      };
+    }
+    get(key) {
+      return this.settings[key];
+    }
+    set(key, value) {
+      if (key === "enabled") {
+        this.settings.enabled = Boolean(value);
+      } else if (key === "duration") {
+        const duration = Number(value);
+        if (!Number.isFinite(duration)) return;
+        this.settings.duration = Math.max(0.01, duration);
+      } else if (key === "start") {
+        const start = String(value).trim();
+        if (!start) return;
+        this.settings.start = start;
+      } else {
+        return;
+      }
+      this.apply();
+    }
+    apply() {
+      this.underlines.forEach((underline) => {
+        if (!this.settings.enabled || reducedMotionEnabled4()) {
+          underline.showFinal();
+          return;
+        }
+        underline.settings.duration = this.settings.duration;
+        underline.settings.start = this.settings.start;
+        underline.init();
+      });
+      ScrollTrigger2.refresh();
+    }
+    replay() {
+      if (!this.settings.enabled) return;
+      this.underlines.forEach((underline) => underline.replay());
+    }
+  };
+  var initMCUnderline = () => {
+    const initialise = () => {
+      const mc = ensureMC8();
+      const underlines = [...document.querySelectorAll(SELECTOR3)].map((element) => {
+        if (element.__mcUnderline) {
+          return element.__mcUnderline;
+        }
+        const instance = new MCUnderline(element);
+        element.__mcUnderline = instance;
+        instance.init();
+        return instance;
+      });
+      mc.underlines = underlines;
+      const standaloneUnderlines = underlines.filter((underline) => !underline.parentOwned);
+      const group = new MCUnderlineGroup(standaloneUnderlines);
+      group.apply();
+      registerDebug3({
+        id: "underlines",
+        label: "Underlines",
+        instances: () => standaloneUnderlines.length ? [group] : [],
+        orderElement: () => standaloneUnderlines[0]?.element || null,
+        instanceLabel: "All Underlines",
+        controls: [
+          {
+            type: "toggle",
+            key: "enabled",
+            label: "Animate Underlines",
+            description: "Enables scroll-triggered animation for every underline outside the Hero."
+          },
+          {
+            type: "text",
+            key: "start",
+            label: "Scroll Start",
+            description: "Sets when all standalone underlines begin their viewport reveal.",
+            placeholder: "GSAP Start",
+            event: "change"
+          },
+          {
+            type: "range",
+            key: "duration",
+            label: "Wipe Duration",
+            description: "Sets the shared wipe duration for all standalone underlines.",
+            min: 0.1,
+            max: 2,
+            step: 0.05,
+            suffix: "s",
+            event: "change"
+          },
+          { type: "button", label: "Replay", action: "replay" }
+        ]
+      });
+      window.addEventListener("mcMotionPreferenceChange", () => {
+        group.apply();
+      });
+      onScrollTriggerDebugChange(() => {
+        group.apply();
+      });
+      const refresh = () => ScrollTrigger2.refresh();
+      requestAnimationFrame(refresh);
+      window.addEventListener("load", refresh, { once: true });
+      logger9.info(`Initialised ${underlines.length} underline(s).`);
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initialise, { once: true });
+      return;
+    }
+    initialise();
+  };
+
   // src/meloncart/forms/prefill.ts
   var DEBUG2 = false;
-  var logger8 = createLogger("melon", "prefill", {
+  var logger10 = createLogger("melon", "prefill", {
     debug: () => DEBUG2
   });
   var SELECTORS2 = {
@@ -11526,10 +12704,10 @@ void main() {
     editButton: '[mc-billing-form="edit"]'
   };
   var debug2 = (...args) => {
-    logger8.debug(...args);
+    logger10.debug(...args);
   };
   var debugWarn2 = (...args) => {
-    logger8.debug(...args);
+    logger10.debug(...args);
   };
   var isReadOnlySupported = (field) => field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement;
   var setFieldLocked = (field, locked) => {
@@ -11622,9 +12800,103 @@ void main() {
     initPrefill();
   };
 
+  // src/meloncart/preloader.ts
+  var SELECTOR4 = "[mc-preloader]";
+  var HERO_SELECTOR = "[mc-hero-sequence]";
+  var ROOT_ATTRIBUTE2 = "data-mc-preloader-active";
+  var FALLBACK_TIMEOUT = 1800;
+  var MINIMUM_DISPLAY_TIME = 500;
+  var logger11 = createLogger("melon", "preloader", { debug: isMCDebugEnabled });
+  var ensureMC9 = () => {
+    window.MC ||= {};
+    return window.MC;
+  };
+  var MCPreloader = class {
+    element;
+    dismissed = false;
+    dismissing = false;
+    heroPlayback = null;
+    fallbackTimer = null;
+    startedAt = 0;
+    constructor(element) {
+      this.element = element;
+    }
+    get active() {
+      return !this.dismissed;
+    }
+    init() {
+      this.startedAt = performance.now();
+      document.documentElement.setAttribute(ROOT_ATTRIBUTE2, "true");
+      this.element.removeAttribute("aria-hidden");
+      this.element.setAttribute("aria-busy", "true");
+      this.fallbackTimer = window.setTimeout(() => {
+        void this.dismiss("fallback timeout");
+      }, FALLBACK_TIMEOUT);
+      if (!document.querySelector(HERO_SELECTOR)) {
+        requestAnimationFrame(() => void this.dismiss("no Hero sequence"));
+      }
+      logger11.debug("Initialised", { element: this.element });
+    }
+    heroReady(play) {
+      if (play) {
+        this.heroPlayback = play;
+      }
+      if (this.dismissed) {
+        this.heroPlayback?.();
+        this.heroPlayback = null;
+        return;
+      }
+      if (!this.dismissing) {
+        void this.dismiss("Hero sequence ready");
+      }
+    }
+    completeDismissal(reason) {
+      if (this.dismissed) return;
+      this.dismissed = true;
+      this.dismissing = false;
+      this.element.setAttribute("aria-hidden", "true");
+      this.element.removeAttribute("aria-busy");
+      gsapWithCSS.set(this.element, { autoAlpha: 0, display: "none", pointerEvents: "none" });
+      document.documentElement.removeAttribute(ROOT_ATTRIBUTE2);
+      const playback = this.heroPlayback;
+      this.heroPlayback = null;
+      playback?.();
+      logger11.debug("Dismissed", { reason });
+    }
+    dismiss(reason) {
+      if (this.dismissed || this.dismissing) return;
+      this.dismissing = true;
+      if (this.fallbackTimer !== null) {
+        window.clearTimeout(this.fallbackTimer);
+        this.fallbackTimer = null;
+      }
+      const wait = Math.max(0, MINIMUM_DISPLAY_TIME - (performance.now() - this.startedAt));
+      logger11.debug("Dismissing", { reason, wait });
+      if (wait) {
+        window.setTimeout(() => this.completeDismissal(reason), wait);
+        return;
+      }
+      this.completeDismissal(reason);
+    }
+  };
+  var initMCPreloader = () => {
+    const elements = [...document.querySelectorAll(SELECTOR4)];
+    const element = elements[0];
+    if (!element) {
+      logger11.debug("No preloader found");
+      return;
+    }
+    if (elements.length > 1) {
+      logger11.warn("Multiple preloaders found; using the first.", { elements });
+    }
+    const preloader = new MCPreloader(element);
+    ensureMC9().preloader = preloader;
+    preloader.init();
+  };
+
   // src/digerati/theme/collector.ts
   var DEBUG3 = false;
-  var logger9 = createLogger("digerati", "theme", {
+  var logger12 = createLogger("digerati", "theme", {
     debug: () => DEBUG3
   });
   var STORAGE_KEYS = {
@@ -11637,13 +12909,13 @@ void main() {
     icon: "ui-theme_icon_"
   };
   var log = (...args) => {
-    logger9.debug(...args);
+    logger12.debug(...args);
   };
   var warn = (...args) => {
-    logger9.warn(...args);
+    logger12.warn(...args);
   };
   var error = (...args) => {
-    logger9.error(...args);
+    logger12.error(...args);
   };
   var createColorThemesAPI = () => ({
     themes: {},
@@ -12000,10 +13272,14 @@ void main() {
   // src/index.ts
   initMCMotion();
   initMCDebug();
+  initMCPreloader();
   initMCChalk();
+  claimMCHeroSequenceOwnership();
   initMCColourReveal();
   initMCDepth();
   initMCIllustration();
+  initMCUnderline();
+  initMCHeroSequence();
   initForm();
   initPrefillUtility();
   initTheme();

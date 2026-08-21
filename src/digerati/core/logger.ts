@@ -6,6 +6,10 @@ type LoggerOptions = {
   debug?: DebugGate;
 };
 
+export const isMCDebugEnabled = (): boolean => {
+  return true;
+};
+
 const resolveDebug = (debug: DebugGate | undefined): boolean => {
   if (typeof debug === 'function') {
     return debug();
