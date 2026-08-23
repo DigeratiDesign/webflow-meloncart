@@ -12453,25 +12453,233 @@ void main() {
     }
   };
 
-  // src/meloncart/effects/underline.ts
-  var SELECTOR3 = "[mc-underline]";
-  var OWNER_ATTRIBUTE3 = "mc-animation-owner";
-  var logger9 = createLogger("melon", "underline", { debug: isMCDebugEnabled });
-  var DEFAULTS4 = {
-    duration: 0.55,
-    start: "top 80%"
-  };
+  // src/meloncart/effects/image-reveal.ts
+  var IMAGE_SELECTOR = 'img[loading="lazy"]:not([mc-image-reveal="off"]), img[mc-image-reveal]:not([mc-image-reveal="off"])';
+  var BACKGROUND_SELECTOR = '[mc-image-reveal]:not(img):not([mc-image-reveal="off"])';
+  var REVEAL_DURATION = 600;
+  var logger9 = createLogger("melon", "image-reveal", { debug: isMCDebugEnabled });
+  var reducedMotionEnabled4 = () => window.MC?.motion?.reduced ?? false;
   var ensureMC8 = () => {
     window.MC ||= {};
     return window.MC;
   };
-  var reducedMotionEnabled4 = () => window.MC?.motion?.reduced ?? false;
+  var getBackgroundImageUrl = (element) => {
+    const { backgroundImage } = window.getComputedStyle(element);
+    if (!backgroundImage || backgroundImage === "none") return null;
+    const match = backgroundImage.match(/url\((['"]?)(.*?)\1\)/);
+    return match?.[2] ?? null;
+  };
+  var MCImageReveal = class {
+    element;
+    image;
+    backgroundUrl;
+    originalBackgroundImage;
+    temporaryLayer;
+    revealed = false;
+    changedPosition = false;
+    originalInlinePosition = "";
+    constructor(element) {
+      this.element = element;
+      if (element instanceof HTMLImageElement) {
+        this.image = element;
+        return;
+      }
+      const computedStyle = window.getComputedStyle(element);
+      this.originalBackgroundImage = computedStyle.backgroundImage;
+      this.backgroundUrl = getBackgroundImageUrl(element) ?? void 0;
+    }
+    async decodeImage(image) {
+      try {
+        if (image.decode) await image.decode();
+      } catch {
+      }
+    }
+    restorePosition() {
+      if (!this.changedPosition) return;
+      this.element.style.position = this.originalInlinePosition;
+      this.changedPosition = false;
+    }
+    removeTemporaryLayer() {
+      if (!this.temporaryLayer) return;
+      this.temporaryLayer.remove();
+      this.temporaryLayer = void 0;
+    }
+    finishBackgroundReveal() {
+      if (this.originalBackgroundImage) {
+        this.element.style.backgroundImage = this.originalBackgroundImage;
+      }
+      this.removeTemporaryLayer();
+      this.restorePosition();
+      this.revealed = true;
+    }
+    reveal() {
+      if (this.revealed) return;
+      if (!this.image) {
+        this.finishBackgroundReveal();
+        return;
+      }
+      this.revealed = true;
+      this.image.style.transition = reducedMotionEnabled4() ? "none" : `opacity ${REVEAL_DURATION}ms ease`;
+      requestAnimationFrame(() => {
+        if (this.image) this.image.style.opacity = "1";
+      });
+    }
+    showFinal() {
+      this.revealed = true;
+      if (this.image) {
+        this.image.style.transition = "none";
+        this.image.style.opacity = "1";
+        return;
+      }
+      this.finishBackgroundReveal();
+    }
+    async decodeAndRevealImage() {
+      if (!this.image) return;
+      await this.decodeImage(this.image);
+      this.reveal();
+    }
+    createBackgroundLayer() {
+      if (!this.originalBackgroundImage) return null;
+      const computedStyle = window.getComputedStyle(this.element);
+      this.originalInlinePosition = this.element.style.position;
+      if (computedStyle.position === "static") {
+        this.element.style.position = "relative";
+        this.changedPosition = true;
+      }
+      const layer = document.createElement("div");
+      layer.setAttribute("aria-hidden", "true");
+      Object.assign(layer.style, {
+        position: "absolute",
+        inset: "0",
+        backgroundImage: this.originalBackgroundImage,
+        backgroundPosition: computedStyle.backgroundPosition,
+        backgroundSize: computedStyle.backgroundSize,
+        backgroundRepeat: computedStyle.backgroundRepeat,
+        backgroundAttachment: computedStyle.backgroundAttachment,
+        backgroundOrigin: computedStyle.backgroundOrigin,
+        backgroundClip: computedStyle.backgroundClip,
+        opacity: "0",
+        pointerEvents: "none",
+        borderRadius: computedStyle.borderRadius,
+        zIndex: "0"
+      });
+      this.temporaryLayer = layer;
+      return layer;
+    }
+    async initBackground() {
+      if (!this.backgroundUrl || !this.originalBackgroundImage) {
+        logger9.warn("No background image found for mc-image-reveal element.", this.element);
+        return;
+      }
+      const layer = this.createBackgroundLayer();
+      if (!layer) return;
+      this.element.style.backgroundImage = "none";
+      this.element.prepend(layer);
+      const preloadImage = new Image();
+      preloadImage.src = this.backgroundUrl;
+      if (!(preloadImage.complete && preloadImage.naturalWidth > 0)) {
+        await new Promise((resolve) => {
+          preloadImage.addEventListener("load", () => resolve(), { once: true });
+          preloadImage.addEventListener("error", () => resolve(), { once: true });
+        });
+      }
+      await this.decodeImage(preloadImage);
+      if (reducedMotionEnabled4()) {
+        this.finishBackgroundReveal();
+        return;
+      }
+      layer.style.transition = `opacity ${REVEAL_DURATION}ms ease`;
+      let completed = false;
+      const complete = () => {
+        if (completed) return;
+        completed = true;
+        this.finishBackgroundReveal();
+      };
+      layer.addEventListener(
+        "transitionend",
+        (event) => {
+          if (event.propertyName === "opacity") complete();
+        },
+        { once: true }
+      );
+      window.setTimeout(complete, REVEAL_DURATION + 100);
+      requestAnimationFrame(() => {
+        layer.style.opacity = "1";
+      });
+    }
+    initImage() {
+      if (!this.image) return;
+      this.image.style.opacity = "0";
+      if (this.image.complete && this.image.naturalWidth > 0) {
+        void this.decodeAndRevealImage();
+        return;
+      }
+      this.image.addEventListener("load", () => void this.decodeAndRevealImage(), { once: true });
+      this.image.addEventListener("error", () => this.showFinal(), { once: true });
+    }
+    init() {
+      if (reducedMotionEnabled4()) {
+        this.showFinal();
+        return;
+      }
+      if (this.image) {
+        this.initImage();
+        return;
+      }
+      void this.initBackground();
+    }
+  };
+  var initMCImageReveal = () => {
+    const initialise = () => {
+      const mc = ensureMC8();
+      mc.imageReveal ||= [];
+      const imageElements = [...document.querySelectorAll(IMAGE_SELECTOR)];
+      const backgroundElements = [...document.querySelectorAll(BACKGROUND_SELECTOR)];
+      const elements = [...imageElements, ...backgroundElements];
+      let initialised = 0;
+      elements.forEach((element) => {
+        if (element.__mcImageReveal) return;
+        const instance2 = new MCImageReveal(element);
+        element.__mcImageReveal = instance2;
+        mc.imageReveal?.push(instance2);
+        instance2.init();
+        initialised += 1;
+      });
+      window.addEventListener("mcMotionPreferenceChange", () => {
+        ensureMC8().imageReveal?.forEach((instance2) => {
+          if (reducedMotionEnabled4()) instance2.showFinal();
+        });
+      });
+      logger9.info(
+        `Initialised ${initialised} image reveal(s): ${imageElements.length} image(s), ${backgroundElements.length} background(s).`
+      );
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initialise, { once: true });
+      return;
+    }
+    initialise();
+  };
+
+  // src/meloncart/effects/underline.ts
+  var SELECTOR3 = "[mc-underline]";
+  var OWNER_ATTRIBUTE3 = "mc-animation-owner";
+  var logger10 = createLogger("melon", "underline", { debug: isMCDebugEnabled });
+  var DEFAULTS4 = {
+    duration: 0.55,
+    start: "top 80%"
+  };
+  var ensureMC9 = () => {
+    window.MC ||= {};
+    return window.MC;
+  };
+  var reducedMotionEnabled5 = () => window.MC?.motion?.reduced ?? false;
   var numberAttribute3 = (element, name, fallback) => {
     const value = Number(element.getAttribute(name));
     return Number.isFinite(value) ? value : fallback;
   };
   var registerDebug3 = (schema) => {
-    const mc = ensureMC8();
+    const mc = ensureMC9();
     if (mc.debug?.register) {
       mc.debug.register(schema);
       return;
@@ -12539,7 +12747,7 @@ void main() {
           start: this.settings.start,
           markers: getScrollTriggerDebug(),
           toggleActions: "play none none reset",
-          onEnter: () => logger9.debug("Scroll trigger entered", { element: this.element })
+          onEnter: () => logger10.debug("Scroll trigger entered", { element: this.element })
         } : void 0
       });
       timeline2.fromTo(
@@ -12548,11 +12756,11 @@ void main() {
         { clipPath: "inset(0 0% 0 0)", duration, ease: "power3.out" }
       );
       this.timeline = timeline2;
-      logger9.debug("Timeline created", { element: this.element, parentOwned: this.parentOwned });
+      logger10.debug("Timeline created", { element: this.element, parentOwned: this.parentOwned });
       return timeline2;
     }
     replay() {
-      if (reducedMotionEnabled4()) {
+      if (reducedMotionEnabled5()) {
         this.showFinal();
         return;
       }
@@ -12562,12 +12770,12 @@ void main() {
       this.createTimeline({ attachScrollTrigger: false, paused: false }).play(0);
     }
     init() {
-      if (reducedMotionEnabled4()) {
+      if (reducedMotionEnabled5()) {
         this.showFinal();
         return;
       }
       if (this.parentOwned) {
-        logger9.debug("Standalone initialisation deferred to parent", { element: this.element });
+        logger10.debug("Standalone initialisation deferred to parent", { element: this.element });
         return;
       }
       this.createTimeline({ attachScrollTrigger: true, paused: false });
@@ -12609,7 +12817,7 @@ void main() {
     }
     apply() {
       this.underlines.forEach((underline) => {
-        if (!this.settings.enabled || reducedMotionEnabled4()) {
+        if (!this.settings.enabled || reducedMotionEnabled5()) {
           underline.showFinal();
           return;
         }
@@ -12626,7 +12834,7 @@ void main() {
   };
   var initMCUnderline = () => {
     const initialise = () => {
-      const mc = ensureMC8();
+      const mc = ensureMC9();
       const underlines = [...document.querySelectorAll(SELECTOR3)].map((element) => {
         if (element.__mcUnderline) {
           return element.__mcUnderline;
@@ -12684,7 +12892,7 @@ void main() {
       const refresh = () => ScrollTrigger2.refresh();
       requestAnimationFrame(refresh);
       window.addEventListener("load", refresh, { once: true });
-      logger9.info(`Initialised ${underlines.length} underline(s).`);
+      logger10.info(`Initialised ${underlines.length} underline(s).`);
     };
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", initialise, { once: true });
@@ -12695,7 +12903,7 @@ void main() {
 
   // src/meloncart/forms/prefill.ts
   var DEBUG2 = false;
-  var logger10 = createLogger("melon", "prefill", {
+  var logger11 = createLogger("melon", "prefill", {
     debug: () => DEBUG2
   });
   var SELECTORS2 = {
@@ -12704,10 +12912,10 @@ void main() {
     editButton: '[mc-billing-form="edit"]'
   };
   var debug2 = (...args) => {
-    logger10.debug(...args);
+    logger11.debug(...args);
   };
   var debugWarn2 = (...args) => {
-    logger10.debug(...args);
+    logger11.debug(...args);
   };
   var isReadOnlySupported = (field) => field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement;
   var setFieldLocked = (field, locked) => {
@@ -12806,8 +13014,8 @@ void main() {
   var ROOT_ATTRIBUTE2 = "data-mc-preloader-active";
   var FALLBACK_TIMEOUT = 1800;
   var MINIMUM_DISPLAY_TIME = 500;
-  var logger11 = createLogger("melon", "preloader", { debug: isMCDebugEnabled });
-  var ensureMC9 = () => {
+  var logger12 = createLogger("melon", "preloader", { debug: isMCDebugEnabled });
+  var ensureMC10 = () => {
     window.MC ||= {};
     return window.MC;
   };
@@ -12835,7 +13043,7 @@ void main() {
       if (!document.querySelector(HERO_SELECTOR)) {
         requestAnimationFrame(() => void this.dismiss("no Hero sequence"));
       }
-      logger11.debug("Initialised", { element: this.element });
+      logger12.debug("Initialised", { element: this.element });
     }
     heroReady(play) {
       if (play) {
@@ -12861,7 +13069,7 @@ void main() {
       const playback = this.heroPlayback;
       this.heroPlayback = null;
       playback?.();
-      logger11.debug("Dismissed", { reason });
+      logger12.debug("Dismissed", { reason });
     }
     dismiss(reason) {
       if (this.dismissed || this.dismissing) return;
@@ -12871,7 +13079,7 @@ void main() {
         this.fallbackTimer = null;
       }
       const wait = Math.max(0, MINIMUM_DISPLAY_TIME - (performance.now() - this.startedAt));
-      logger11.debug("Dismissing", { reason, wait });
+      logger12.debug("Dismissing", { reason, wait });
       if (wait) {
         window.setTimeout(() => this.completeDismissal(reason), wait);
         return;
@@ -12883,20 +13091,20 @@ void main() {
     const elements = [...document.querySelectorAll(SELECTOR4)];
     const element = elements[0];
     if (!element) {
-      logger11.debug("No preloader found");
+      logger12.debug("No preloader found");
       return;
     }
     if (elements.length > 1) {
-      logger11.warn("Multiple preloaders found; using the first.", { elements });
+      logger12.warn("Multiple preloaders found; using the first.", { elements });
     }
     const preloader = new MCPreloader(element);
-    ensureMC9().preloader = preloader;
+    ensureMC10().preloader = preloader;
     preloader.init();
   };
 
   // src/digerati/theme/collector.ts
   var DEBUG3 = false;
-  var logger12 = createLogger("digerati", "theme", {
+  var logger13 = createLogger("digerati", "theme", {
     debug: () => DEBUG3
   });
   var STORAGE_KEYS = {
@@ -12909,13 +13117,13 @@ void main() {
     icon: "ui-theme_icon_"
   };
   var log = (...args) => {
-    logger12.debug(...args);
+    logger13.debug(...args);
   };
   var warn = (...args) => {
-    logger12.warn(...args);
+    logger13.warn(...args);
   };
   var error = (...args) => {
-    logger12.error(...args);
+    logger13.error(...args);
   };
   var createColorThemesAPI = () => ({
     themes: {},
@@ -13173,7 +13381,7 @@ void main() {
   };
 
   // src/meloncart/theme/auto-hide-accordion-item.ts
-  var logger13 = createLogger("melon", "faq", {
+  var logger14 = createLogger("melon", "faq", {
     debug: isMCDebugEnabled
   });
   var AutoHideAccordionItem = class {
@@ -13186,14 +13394,14 @@ void main() {
       this.wrapSelector = options.wrapSelector ?? '[mc-faq="answer"]';
       this.boundClick = (event) => this.handleClick(event);
       this.items = [...document.querySelectorAll(this.itemSelector)];
-      logger13.debug("Found FAQ items.", {
+      logger14.debug("Found FAQ items.", {
         itemSelector: this.itemSelector,
         wrapSelector: this.wrapSelector,
         count: this.items.length,
         items: this.items
       });
       if (!this.items.length) {
-        logger13.warn(`No FAQ items found for selector "${this.itemSelector}".`);
+        logger14.warn(`No FAQ items found for selector "${this.itemSelector}".`);
       }
     }
     findAnswerWrap(trigger) {
@@ -13207,11 +13415,11 @@ void main() {
     }
     handleClick(event) {
       if (!event.isTrusted) {
-        logger13.debug("Ignored synthetic FAQ click.", { currentTarget: event.currentTarget });
+        logger14.debug("Ignored synthetic FAQ click.", { currentTarget: event.currentTarget });
         return;
       }
       const clickedItem = event.currentTarget;
-      logger13.debug("Trusted FAQ click received.", {
+      logger14.debug("Trusted FAQ click received.", {
         clickedItem,
         siblingCount: this.items.length - 1
       });
@@ -13219,30 +13427,30 @@ void main() {
         if (item === clickedItem) return;
         const wrap3 = this.findAnswerWrap(item);
         if (!wrap3) {
-          logger13.debug("Skipped sibling without a nearby answer wrapper.", {
+          logger14.debug("Skipped sibling without a nearby answer wrapper.", {
             item,
             wrapSelector: this.wrapSelector
           });
           return;
         }
         const { height } = window.getComputedStyle(wrap3);
-        logger13.debug("Checked FAQ sibling state.", { item, wrap: wrap3, height });
+        logger14.debug("Checked FAQ sibling state.", { item, wrap: wrap3, height });
         if (height === "0px") return;
         item.click();
-        logger13.debug("Triggered Webflow close click for FAQ sibling.", { item, wrap: wrap3, height });
+        logger14.debug("Triggered Webflow close click for FAQ sibling.", { item, wrap: wrap3, height });
       });
     }
     init() {
       this.items.forEach((item) => {
         item.addEventListener("click", this.boundClick, true);
       });
-      logger13.debug("Initialized FAQ auto-hide listeners.", { count: this.items.length });
+      logger14.debug("Initialized FAQ auto-hide listeners.", { count: this.items.length });
     }
     destroy() {
       this.items.forEach((item) => {
         item.removeEventListener("click", this.boundClick, true);
       });
-      logger13.debug("Destroyed.");
+      logger14.debug("Destroyed.");
     }
   };
   var instance;
@@ -13355,7 +13563,7 @@ void main() {
     markAttr: "data-mc-widow"
   };
   var initialized2 = false;
-  var logger14 = createLogger("melon", "widow", {
+  var logger15 = createLogger("melon", "widow", {
     debug: () => false
   });
   var getNowrapCount = (element, fallback) => {
@@ -13453,7 +13661,7 @@ void main() {
         chars[charIndex] = NBSP;
         spacesReplaced += 1;
         if (debug3) {
-          logger14.debug("Replacing trailing whitespace", {
+          logger15.debug("Replacing trailing whitespace", {
             nodeIndex,
             charIndex,
             spacesReplaced,
@@ -13553,6 +13761,7 @@ void main() {
   initMCColourReveal();
   initMCDepth();
   initMCIllustration();
+  initMCImageReveal();
   initMCUnderline();
   initMCHeroSequence();
   initForm();
