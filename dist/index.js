@@ -7394,16 +7394,16 @@
       const decimals = Number.isInteger(control.decimals) ? control.decimals : Number.isInteger(Number(control.step)) && Number(control.step) >= 1 ? 0 : String(control.step ?? "").split(".")[1]?.length ?? 1;
       return `${n.toFixed(decimals)}${control.suffix || ""}`;
     };
-    const read = (instance, schema, key) => {
-      if (typeof schema.get === "function") return schema.get(instance, key);
-      if (typeof instance?.get === "function") return instance.get(key);
-      if (instance?.settings && key in instance.settings) return instance.settings[key];
+    const read = (instance2, schema, key) => {
+      if (typeof schema.get === "function") return schema.get(instance2, key);
+      if (typeof instance2?.get === "function") return instance2.get(key);
+      if (instance2?.settings && key in instance2.settings) return instance2.settings[key];
     };
-    const write = (instance, schema, key, value, persist = true) => {
+    const write = (instance2, schema, key, value, persist = true) => {
       if (typeof schema.set === "function") {
-        schema.set(instance, key, value);
-      } else if (typeof instance?.set === "function") {
-        instance.set(key, value);
+        schema.set(instance2, key, value);
+      } else if (typeof instance2?.set === "function") {
+        instance2.set(key, value);
       }
       if (persist) {
         persistSettings();
@@ -7416,10 +7416,10 @@
         const controls = (schema.controls || []).filter(
           (control) => control.type === "range" || control.type === "text" || control.type === "toggle"
         );
-        effects[schema.id] = instances.map((instance) => {
+        effects[schema.id] = instances.map((instance2) => {
           const settings = {};
           controls.forEach((control) => {
-            const value = read(instance, schema, control.key);
+            const value = read(instance2, schema, control.key);
             if (value !== void 0) {
               settings[control.key] = value;
             }
@@ -7468,11 +7468,11 @@
         ).map((control) => control.key)
       );
       savedInstances.forEach((settings, index) => {
-        const instance = instances[index];
-        if (!instance) return;
+        const instance2 = instances[index];
+        if (!instance2) return;
         Object.entries(settings).forEach(([key, value]) => {
           if (validKeys.has(key)) {
-            write(instance, schema, key, value, false);
+            write(instance2, schema, key, value, false);
           }
         });
       });
@@ -7538,8 +7538,8 @@
       label.appendChild(info);
       return label;
     };
-    const createRange = (instance, schema, control) => {
-      const current = read(instance, schema, control.key);
+    const createRange = (instance2, schema, control) => {
+      const current = read(instance2, schema, control.key);
       if (current == null || !Number.isFinite(Number(current))) return null;
       const wrap3 = document.createElement("label");
       wrap3.className = "mc-debug-control";
@@ -7567,29 +7567,29 @@
         updateProgress();
         display.textContent = formatValue(control, input.value);
         if (control.event !== "change") {
-          write(instance, schema, control.key, Number(input.value));
+          write(instance2, schema, control.key, Number(input.value));
         }
       });
       if (control.event === "change") {
         input.addEventListener("change", () => {
-          write(instance, schema, control.key, Number(input.value));
+          write(instance2, schema, control.key, Number(input.value));
         });
       }
       row.append(label, display);
       wrap3.append(row, input);
       return wrap3;
     };
-    const createButton = (instance, control) => {
+    const createButton = (instance2, control) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "mc-debug-button";
       button.textContent = control.label;
       button.addEventListener("click", () => {
         if (typeof control.onClick === "function") {
-          control.onClick(instance);
+          control.onClick(instance2);
           return;
         }
-        const actionTarget = instance;
+        const actionTarget = instance2;
         if (control.action && typeof actionTarget[control.action] === "function") {
           const action = actionTarget[control.action];
           action();
@@ -7597,8 +7597,8 @@
       });
       return button;
     };
-    const createToggle = (instance, schema, control) => {
-      const current = Boolean(read(instance, schema, control.key));
+    const createToggle = (instance2, schema, control) => {
+      const current = Boolean(read(instance2, schema, control.key));
       const wrap3 = document.createElement("label");
       wrap3.className = "mc-debug-control";
       const row = document.createElement("div");
@@ -7609,14 +7609,14 @@
       input.checked = current;
       input.setAttribute("aria-label", control.label);
       input.addEventListener("change", () => {
-        write(instance, schema, control.key, input.checked);
+        write(instance2, schema, control.key, input.checked);
       });
       row.append(label, input);
       wrap3.appendChild(row);
       return wrap3;
     };
-    const createText = (instance, schema, control) => {
-      const current = read(instance, schema, control.key);
+    const createText = (instance2, schema, control) => {
+      const current = read(instance2, schema, control.key);
       const wrap3 = document.createElement("label");
       wrap3.className = "mc-debug-control";
       const input = document.createElement("input");
@@ -7628,7 +7628,7 @@
         input.placeholder = control.placeholder;
       }
       const commit = () => {
-        write(instance, schema, control.key, input.value);
+        write(instance2, schema, control.key, input.value);
       };
       input.addEventListener("input", () => {
         if (control.event !== "change") {
@@ -7650,8 +7650,8 @@
       return wrap3;
     };
     const isReplayControl = (control) => control.action === "replay" || control.label.trim().toLowerCase() === "replay";
-    const createReplayButton = (instance, control) => {
-      if (!control && typeof instance?.replay !== "function") {
+    const createReplayButton = (instance2, control) => {
+      if (!control && typeof instance2?.replay !== "function") {
         return null;
       }
       const button = document.createElement("button");
@@ -7670,16 +7670,16 @@
         event.stopPropagation();
         if (control) {
           if (typeof control.onClick === "function") {
-            control.onClick(instance);
+            control.onClick(instance2);
             return;
           }
-          if (control.action && typeof instance[control.action] === "function") {
-            instance[control.action]();
+          if (control.action && typeof instance2[control.action] === "function") {
+            instance2[control.action]();
             return;
           }
         }
-        if (typeof instance.replay === "function") {
-          instance.replay();
+        if (typeof instance2.replay === "function") {
+          instance2.replay();
         }
       });
       return button;
@@ -7698,7 +7698,7 @@
       });
       return block;
     };
-    const createSection = (instance, schema, index, total, defaultOpen) => {
+    const createSection = (instance2, schema, index, total, defaultOpen) => {
       const section = document.createElement("div");
       section.className = "mc-debug-section";
       const sectionKey = `${schema.id}:${index}`;
@@ -7707,7 +7707,7 @@
       let titleText = "Controls";
       if (schema.instanceLabel !== false) {
         if (typeof schema.instanceLabel === "function") {
-          titleText = schema.instanceLabel(instance, index, total);
+          titleText = schema.instanceLabel(instance2, index, total);
         } else {
           const base = schema.instanceLabel || "Instance";
           titleText = total > 1 ? `${base} ${index + 1}` : base;
@@ -7742,7 +7742,7 @@
       const replayControl = (schema.controls || []).find(
         (control) => control.type === "button" && isReplayControl(control)
       );
-      const replayButton = createReplayButton(instance, replayControl);
+      const replayButton = createReplayButton(instance2, replayControl);
       const chevron = document.createElement("span");
       chevron.className = "mc-debug-disclosure-icon";
       chevron.setAttribute("aria-hidden", "true");
@@ -7763,13 +7763,13 @@
         }
         let element = null;
         if (control.type === "range") {
-          element = createRange(instance, schema, control);
+          element = createRange(instance2, schema, control);
         } else if (control.type === "text") {
-          element = createText(instance, schema, control);
+          element = createText(instance2, schema, control);
         } else if (control.type === "toggle") {
-          element = createToggle(instance, schema, control);
+          element = createToggle(instance2, schema, control);
         } else if (control.type === "button") {
-          element = createButton(instance, control);
+          element = createButton(instance2, control);
         }
         if (element) body.appendChild(element);
       });
@@ -7897,9 +7897,9 @@
         group.appendChild(title);
         const stats = createStats(schema);
         if (stats) group.appendChild(stats);
-        instances.forEach((instance, index) => {
+        instances.forEach((instance2, index) => {
           group.appendChild(
-            createSection(instance, schema, index, instances.length, sectionCount === 0)
+            createSection(instance2, schema, index, instances.length, sectionCount === 0)
           );
           sectionCount += 1;
         });
@@ -8776,7 +8776,7 @@
   var refreshChalkStats = () => {
     const instances = [...chalkInstances.values()];
     const generatedElements = instances.reduce(
-      (n, instance) => n + (instance.generatedElements || 0),
+      (n, instance2) => n + (instance2.generatedElements || 0),
       0
     );
     const mc = ensureMC3();
@@ -8784,9 +8784,9 @@
       icons: instances.length,
       generatedElements,
       averagePerIcon: instances.length ? generatedElements / instances.length : 0,
-      perIcon: instances.map((instance, index) => ({
+      perIcon: instances.map((instance2, index) => ({
         index: index + 1,
-        generatedElements: instance.generatedElements || 0
+        generatedElements: instance2.generatedElements || 0
       }))
     };
     window.dispatchEvent(new CustomEvent("mcChalkStatsChange", { detail: mc.chalkStats }));
@@ -8907,7 +8907,7 @@
     svg.setAttribute("overflow", "visible");
     svg.style.overflow = "visible";
     const domNodesAfter = svg.querySelectorAll("*").length;
-    const instance = {
+    const instance2 = {
       wrapper,
       svg,
       treated,
@@ -8991,25 +8991,25 @@
         }
       }
     };
-    chalkInstances.set(wrapper, instance);
-    return instance;
+    chalkInstances.set(wrapper, instance2);
+    return instance2;
   };
-  var hideInstance = (instance) => {
-    instance.brushLayers.forEach(hideBrushLayer);
+  var hideInstance = (instance2) => {
+    instance2.brushLayers.forEach(hideBrushLayer);
   };
-  var showInstance = (instance) => {
-    instance.brushLayers.forEach(showBrushLayer);
+  var showInstance = (instance2) => {
+    instance2.brushLayers.forEach(showBrushLayer);
   };
-  var revealWrapper = (instance) => {
-    if (instance?.wrapper) {
-      instance.wrapper.style.opacity = "1";
+  var revealWrapper = (instance2) => {
+    if (instance2?.wrapper) {
+      instance2.wrapper.style.opacity = "1";
     }
   };
   var revealWrappers = (instances) => {
     instances.forEach(revealWrapper);
   };
-  var addInstanceToTimeline = (timeline2, instance, duration, startPosition) => {
-    const { brushLayers: layers } = instance;
+  var addInstanceToTimeline = (timeline2, instance2, duration, startPosition) => {
+    const { brushLayers: layers } = instance2;
     if (!layers.length) {
       return;
     }
@@ -9049,7 +9049,7 @@
     const wrappers = [...sequenceElement.querySelectorAll(CHALK_SELECTOR)].filter(
       (wrapper) => wrapper.closest(SEQUENCE_SELECTOR) === sequenceElement
     );
-    const instances = wrappers.map((wrapper) => chalkInstances.get(wrapper)).filter((instance) => Boolean(instance));
+    const instances = wrappers.map((wrapper) => chalkInstances.get(wrapper)).filter((instance2) => Boolean(instance2));
     if (!instances.length) {
       return null;
     }
@@ -9076,8 +9076,8 @@
       timeline2 = gsapWithCSS.timeline({
         paused: true
       });
-      instances.forEach((instance, index) => {
-        addInstanceToTimeline(timeline2, instance, settings.duration, index * settings.stagger);
+      instances.forEach((instance2, index) => {
+        addInstanceToTimeline(timeline2, instance2, settings.duration, index * settings.stagger);
       });
       trigger = ScrollTrigger2.create({
         trigger: sequenceElement,
@@ -9223,16 +9223,16 @@
           if (wrapper.closest(SEQUENCE_SELECTOR)) {
             return;
           }
-          const instance = chalkInstances.get(wrapper);
-          if (instance) {
-            showInstance(instance);
-            revealWrapper(instance);
+          const instance2 = chalkInstances.get(wrapper);
+          if (instance2) {
+            showInstance(instance2);
+            revealWrapper(instance2);
           }
         });
         initSequences();
         const instances = [...chalkInstances.values()];
         const generatedElements = instances.reduce(
-          (total, instance) => total + (instance.generatedElements || 0),
+          (total, instance2) => total + (instance2.generatedElements || 0),
           0
         );
         const averagePerIcon = instances.length ? generatedElements / instances.length : 0;
@@ -9242,9 +9242,9 @@
           icons: instances.length,
           generatedElements,
           averagePerIcon,
-          perIcon: instances.map((instance, index) => ({
+          perIcon: instances.map((instance2, index) => ({
             index: index + 1,
-            generatedElements: instance.generatedElements || 0
+            generatedElements: instance2.generatedElements || 0
           }))
         };
         logger4.info("DOM impact", mc.chalkStats);
@@ -9254,7 +9254,7 @@
             return first?.get?.(key);
           },
           set(key, value) {
-            (ensureMC3().chalk || []).forEach((instance) => instance.set?.(key, value));
+            (ensureMC3().chalk || []).forEach((instance2) => instance2.set?.(key, value));
           }
         };
         registerDebugSchema({
@@ -9706,8 +9706,8 @@
   };
   var updateMotion = () => {
     const mc = ensureMC4();
-    (mc.colourReveal || []).forEach((instance) => {
-      void instance.motionChanged();
+    (mc.colourReveal || []).forEach((instance2) => {
+      void instance2.motionChanged();
     });
   };
   var initMCColourReveal = () => {
@@ -9718,7 +9718,7 @@
       label: "Colour Reveal",
       instances: () => ensureMC4().colourReveal || [],
       orderElement: () => ensureMC4().colourReveal?.[0]?.component || null,
-      instanceLabel: (instance) => instance.component.textContent?.replace(/\s+/g, " ").trim() || "Heading",
+      instanceLabel: (instance2) => instance2.component.textContent?.replace(/\s+/g, " ").trim() || "Heading",
       controls: [
         {
           type: "text",
@@ -9765,8 +9765,8 @@
     });
     window.addEventListener("mcMotionPreferenceChange", updateMotion);
     onScrollTriggerDebugChange(() => {
-      mc.colourReveal?.forEach((instance) => {
-        void instance.refreshScrollTriggerDebug();
+      mc.colourReveal?.forEach((instance2) => {
+        void instance2.refreshScrollTriggerDebug();
       });
     });
     const motionMedia = window.matchMedia?.("(prefers-reduced-motion: reduce)");
@@ -9789,10 +9789,10 @@
           return;
         }
         component.setAttribute("data-mc-colour-reveal-init", "");
-        const instance = new MCColourReveal(component, index);
-        component.__mcColourReveal = instance;
-        mc.colourReveal?.push(instance);
-        void instance.init();
+        const instance2 = new MCColourReveal(component, index);
+        component.__mcColourReveal = instance2;
+        mc.colourReveal?.push(instance2);
+        void instance2.init();
       });
       mc.debug?.refresh?.();
       logger5.info(`Initialised ${components.length} element(s).`);
@@ -11119,8 +11119,8 @@ void main() {
   };
   var initMCDepth = () => {
     onScrollTriggerDebugChange(() => {
-      ensureMC5().depth?.filter(Boolean).forEach((instance) => {
-        instance.refreshScrollTriggerDebug();
+      ensureMC5().depth?.filter(Boolean).forEach((instance2) => {
+        instance2.refreshScrollTriggerDebug();
       });
     });
     const motionMedia = window.matchMedia?.("(prefers-reduced-motion: reduce)");
@@ -11159,9 +11159,9 @@ void main() {
           }
           return;
         }
-        const instance = new MCDepthReveal(image);
-        image.__mcDepthReveal = instance;
-        mc.depth?.push(instance);
+        const instance2 = new MCDepthReveal(image);
+        image.__mcDepthReveal = instance2;
+        mc.depth?.push(instance2);
       });
       registerDebugSchema2({
         id: "depth",
@@ -12631,10 +12631,10 @@ void main() {
         if (element.__mcUnderline) {
           return element.__mcUnderline;
         }
-        const instance = new MCUnderline(element);
-        element.__mcUnderline = instance;
-        instance.init();
-        return instance;
+        const instance2 = new MCUnderline(element);
+        element.__mcUnderline = instance2;
+        instance2.init();
+        return instance2;
       });
       mc.underlines = underlines;
       const standaloneUnderlines = underlines.filter((underline) => !underline.parentOwned);
@@ -13172,6 +13172,87 @@ void main() {
     collectColorThemes();
   };
 
+  // src/meloncart/theme/auto-hide-accordion-item.ts
+  var logger13 = createLogger("melon", "faq", {
+    debug: isMCDebugEnabled
+  });
+  var AutoHideAccordionItem = class {
+    items;
+    itemSelector;
+    wrapSelector;
+    boundClick;
+    constructor(options = {}) {
+      this.itemSelector = options.itemSelector ?? '[mc-faq="question"]';
+      this.wrapSelector = options.wrapSelector ?? '[mc-faq="answer"]';
+      this.boundClick = (event) => this.handleClick(event);
+      this.items = [...document.querySelectorAll(this.itemSelector)];
+      logger13.debug("Found FAQ items.", {
+        itemSelector: this.itemSelector,
+        wrapSelector: this.wrapSelector,
+        count: this.items.length,
+        items: this.items
+      });
+      if (!this.items.length) {
+        logger13.warn(`No FAQ items found for selector "${this.itemSelector}".`);
+      }
+    }
+    findAnswerWrap(trigger) {
+      let container = trigger;
+      while (container) {
+        const wrap3 = container.querySelector(this.wrapSelector);
+        if (wrap3) return wrap3;
+        container = container.parentElement;
+      }
+      return void 0;
+    }
+    handleClick(event) {
+      if (!event.isTrusted) {
+        logger13.debug("Ignored synthetic FAQ click.", { currentTarget: event.currentTarget });
+        return;
+      }
+      const clickedItem = event.currentTarget;
+      logger13.debug("Trusted FAQ click received.", {
+        clickedItem,
+        siblingCount: this.items.length - 1
+      });
+      this.items.forEach((item) => {
+        if (item === clickedItem) return;
+        const wrap3 = this.findAnswerWrap(item);
+        if (!wrap3) {
+          logger13.debug("Skipped sibling without a nearby answer wrapper.", {
+            item,
+            wrapSelector: this.wrapSelector
+          });
+          return;
+        }
+        const { height } = window.getComputedStyle(wrap3);
+        logger13.debug("Checked FAQ sibling state.", { item, wrap: wrap3, height });
+        if (height === "0px") return;
+        item.click();
+        logger13.debug("Triggered Webflow close click for FAQ sibling.", { item, wrap: wrap3, height });
+      });
+    }
+    init() {
+      this.items.forEach((item) => {
+        item.addEventListener("click", this.boundClick, true);
+      });
+      logger13.debug("Initialized FAQ auto-hide listeners.", { count: this.items.length });
+    }
+    destroy() {
+      this.items.forEach((item) => {
+        item.removeEventListener("click", this.boundClick, true);
+      });
+      logger13.debug("Destroyed.");
+    }
+  };
+  var instance;
+  var initAutoHideAccordionItem = (options) => {
+    if (instance) return instance;
+    instance = new AutoHideAccordionItem(options);
+    instance.init();
+    return instance;
+  };
+
   // src/meloncart/theme/scroll-animation.ts
   var currentTriggers = [];
   var initialized = false;
@@ -13263,10 +13344,204 @@ void main() {
     });
   };
 
+  // src/meloncart/theme/widow-control.ts
+  var WIDOW_ATTR = "mc-widow";
+  var WIDOW_WORDS_ATTR = "mc-widow-words";
+  var NBSP = "\xA0";
+  var DEFAULTS5 = {
+    selector: "p, li",
+    skipSelectors: ['[aria-hidden="true"]'],
+    nowrapCount: 2,
+    markAttr: "data-mc-widow"
+  };
+  var initialized2 = false;
+  var logger14 = createLogger("melon", "widow", {
+    debug: () => false
+  });
+  var getNowrapCount = (element, fallback) => {
+    const attr = element.getAttribute(WIDOW_WORDS_ATTR);
+    if (!attr) {
+      return fallback;
+    }
+    const parsed = Number.parseInt(attr, 10);
+    if (!Number.isFinite(parsed)) {
+      return fallback;
+    }
+    return Math.max(2, parsed);
+  };
+  var getEligibleTextNodes = (root, skipSelectors) => {
+    const nodes = [];
+    const skipSelector = skipSelectors.join(",");
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: (node2) => {
+        const text = node2.nodeValue ?? "";
+        if (!/\S/.test(text)) {
+          return NodeFilter.FILTER_REJECT;
+        }
+        const parent = node2.parentElement;
+        if (!parent) {
+          return NodeFilter.FILTER_REJECT;
+        }
+        const noFixParent = parent.closest(`[${WIDOW_ATTR}="no-fix"]`);
+        if (noFixParent && noFixParent !== root) {
+          return NodeFilter.FILTER_REJECT;
+        }
+        if (skipSelector) {
+          const skippedParent = parent.closest(skipSelector);
+          if (skippedParent && skippedParent !== root) {
+            return NodeFilter.FILTER_REJECT;
+          }
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    let node = walker.nextNode();
+    while (node) {
+      nodes.push(node);
+      node = walker.nextNode();
+    }
+    return nodes;
+  };
+  var findPreviousNonWhitespace = (nodes, nodeIndex, charIndex) => {
+    for (let i = nodeIndex; i >= 0; i--) {
+      const value = nodes[i].nodeValue ?? "";
+      const start = i === nodeIndex ? charIndex - 1 : value.length - 1;
+      for (let j = start; j >= 0; j--) {
+        if (!/\s/.test(value[j])) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+  var findNextNonWhitespace = (nodes, nodeIndex, charIndex) => {
+    for (let i = nodeIndex; i < nodes.length; i++) {
+      const value = nodes[i].nodeValue ?? "";
+      const start = i === nodeIndex ? charIndex + 1 : 0;
+      for (let j = start; j < value.length; j++) {
+        if (!/\s/.test(value[j])) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+  var keepLastNWordsTogether = (root, count, skipSelectors, debug3) => {
+    const nodes = getEligibleTextNodes(root, skipSelectors);
+    if (!nodes.length) {
+      return false;
+    }
+    const spacesNeeded = count - 1;
+    let spacesReplaced = 0;
+    for (let nodeIndex = nodes.length - 1; nodeIndex >= 0 && spacesReplaced < spacesNeeded; nodeIndex--) {
+      const node = nodes[nodeIndex];
+      const value = node.nodeValue ?? "";
+      if (!value) {
+        continue;
+      }
+      const chars = value.split("");
+      for (let charIndex = chars.length - 1; charIndex >= 0 && spacesReplaced < spacesNeeded; charIndex--) {
+        const char = chars[charIndex];
+        if (!/\s/.test(char) || char === NBSP) {
+          continue;
+        }
+        const hasContentBefore = findPreviousNonWhitespace(nodes, nodeIndex, charIndex);
+        const hasContentAfter = findNextNonWhitespace(nodes, nodeIndex, charIndex);
+        if (!hasContentBefore || !hasContentAfter) {
+          continue;
+        }
+        chars[charIndex] = NBSP;
+        spacesReplaced += 1;
+        if (debug3) {
+          logger14.debug("Replacing trailing whitespace", {
+            nodeIndex,
+            charIndex,
+            spacesReplaced,
+            spacesNeeded
+          });
+        }
+      }
+      node.nodeValue = chars.join("");
+    }
+    return spacesReplaced === spacesNeeded;
+  };
+  var revertWidow = (root) => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let changed = false;
+    let node = walker.nextNode();
+    while (node) {
+      const value = node.nodeValue ?? "";
+      if (value.includes(NBSP)) {
+        node.nodeValue = value.replace(/\u00A0/g, " ");
+        changed = true;
+      }
+      node = walker.nextNode();
+    }
+    return changed;
+  };
+  var applyWidowControl = (options = {}) => {
+    const selector3 = options.selector ?? DEFAULTS5.selector;
+    const skipSelectors = options.skipSelectors ?? DEFAULTS5.skipSelectors;
+    const defaultNowrapCount = Math.max(2, options.nowrapCount ?? DEFAULTS5.nowrapCount);
+    const markAttr = options.markAttr ?? DEFAULTS5.markAttr;
+    const debug3 = options.debug ?? false;
+    const skipSelector = skipSelectors.join(",");
+    const targetSelector = `${selector3}, [${WIDOW_ATTR}="fix"]`;
+    const targets = Array.from(new Set(document.querySelectorAll(targetSelector)));
+    targets.forEach((element) => {
+      const tag = element.tagName.toLowerCase();
+      const widowMode = element.getAttribute(WIDOW_ATTR);
+      const forceFix = widowMode === "fix";
+      const noFix = widowMode === "no-fix";
+      const isHeading = /^h[1-6]$/.test(tag);
+      const previousState = element.getAttribute(markAttr);
+      if (noFix) {
+        if (previousState === "fixed") {
+          revertWidow(element);
+        }
+        element.setAttribute(markAttr, "skipped-no-fix");
+        return;
+      }
+      if (isHeading && !forceFix) {
+        element.setAttribute(markAttr, "skipped-heading");
+        return;
+      }
+      const matchesSkip = skipSelector && (element.matches(skipSelector) || !!element.closest(skipSelector));
+      if (matchesSkip) {
+        if (previousState === "fixed") {
+          revertWidow(element);
+        }
+        element.setAttribute(markAttr, "skipped");
+        return;
+      }
+      if (element.hasAttribute(markAttr)) {
+        return;
+      }
+      const nowrapCount = getNowrapCount(element, defaultNowrapCount);
+      const text = (element.textContent ?? "").replace(/\s+/g, " ").trim();
+      const wordCount = text ? text.split(" ").filter(Boolean).length : 0;
+      if (wordCount < nowrapCount) {
+        element.setAttribute(markAttr, "skipped-too-few-words");
+        return;
+      }
+      const fixed = keepLastNWordsTogether(element, nowrapCount, skipSelectors, debug3);
+      element.setAttribute(markAttr, fixed ? "fixed" : "noop");
+    });
+  };
+  var initMCWidowControl = (options = {}) => {
+    if (initialized2) {
+      return;
+    }
+    initialized2 = true;
+    applyWidowControl(options);
+  };
+
   // src/meloncart/theme/index.ts
   var initTheme = () => {
     initThemeScrollAnimation();
     initThemeCollector();
+    initAutoHideAccordionItem();
+    initMCWidowControl();
   };
 
   // src/index.ts
