@@ -10,6 +10,7 @@ import {
 } from './meloncart/effects/hero-sequence';
 import { initMCIllustration } from './meloncart/effects/illustration';
 import { initMCImageReveal } from './meloncart/effects/image-reveal';
+import { initMCSubmitProxy } from './meloncart/effects/submit-proxy';
 import { initMCUnderline } from './meloncart/effects/underline';
 import { initPrefillUtility } from './meloncart/forms/prefill';
 import { initMCPreloader } from './meloncart/preloader';
@@ -24,6 +25,7 @@ initMCColourReveal();
 initMCDepth();
 initMCIllustration();
 initMCImageReveal();
+initMCSubmitProxy();
 initMCUnderline();
 initMCHeroSequence();
 initForm();
