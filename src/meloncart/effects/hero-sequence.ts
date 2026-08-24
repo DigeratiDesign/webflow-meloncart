@@ -6,6 +6,7 @@ import type { MCController, MCDebugSchema, MCNamespace } from '../../digerati/co
 const SEQUENCE_SELECTOR = '[mc-hero-sequence]';
 const OWNER_VALUE = 'hero-sequence';
 const logger = createLogger('melon', 'hero-sequence', { debug: isMCDebugEnabled });
+const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
 type MCDepthController = MCController & {
   image: HTMLImageElement;
@@ -33,6 +34,20 @@ type MCUnderlineController = MCController & {
   showFinal: () => void;
 };
 
+type MCRewardController = MCController & {
+  readonly entranceDuration: number;
+  prepare: () => void;
+  play: () => void;
+  startScrollParallax: () => void;
+  showFinal: () => void;
+};
+
+type MCParallaxController = MCController & {
+  prepare: () => void;
+  playIntro: () => void;
+  showFinal: () => void;
+};
+
 type MCDepthElement = HTMLImageElement & {
   __mcDepthReveal?: MCDepthController;
 };
@@ -43,6 +58,14 @@ type MCColourRevealElement = HTMLElement & {
 
 type MCUnderlineElement = HTMLElement & {
   __mcUnderline?: MCUnderlineController;
+};
+
+type MCRewardElement = HTMLElement & {
+  __mcReward?: MCRewardController;
+};
+
+type MCParallaxElement = HTMLElement & {
+  __mcParallax?: MCParallaxController;
 };
 
 type MCPreloaderAPI = {
@@ -84,7 +107,9 @@ export const claimMCHeroSequenceOwnership = () => {
 
   document.querySelectorAll<HTMLElement>(SEQUENCE_SELECTOR).forEach((sequence) => {
     sequence
-      .querySelectorAll<HTMLElement>('img[mc-depth-reveal], [mc-colour-reveal], [mc-underline]')
+      .querySelectorAll<HTMLElement>(
+        'img[mc-depth-reveal], [mc-colour-reveal], [mc-underline], [mc-reward="scene"], [mc-parallax="scene"]'
+      )
       .forEach((child) => {
         if (
           child.closest(SEQUENCE_SELECTOR) !== sequence ||
@@ -130,7 +155,25 @@ class MCHeroSequence implements MCController {
   }
 
   get(key: string) {
-    if (key === 'visualStart' && !this.depth && !this.child<HTMLElement>('[mc-hero-image]')) {
+    if (key === 'eyebrowStart' && !this.child<HTMLElement>('[mc-hero-eyebrow]')) {
+      return null;
+    }
+
+    if (key === 'headingStart' && !this.colourReveal) {
+      return null;
+    }
+
+    if (key === 'copyStart' && !this.child<HTMLElement>('[mc-hero-body]')) {
+      return null;
+    }
+
+    if (
+      key === 'visualStart' &&
+      !this.depth &&
+      !this.reward &&
+      !this.parallax &&
+      !this.child<HTMLElement>('[mc-hero-image]')
+    ) {
       return null;
     }
 
@@ -139,6 +182,10 @@ class MCHeroSequence implements MCController {
     }
 
     if (key === 'footnoteStart' && !this.child<HTMLElement>('[mc-hero-footnote]')) {
+      return null;
+    }
+
+    if (key === 'ctaStart' && !this.child<HTMLElement>('[mc-hero-cta]')) {
       return null;
     }
 
@@ -193,6 +240,20 @@ class MCHeroSequence implements MCController {
     );
   }
 
+  private get reward() {
+    return (
+      (this.child<MCRewardElement>('[mc-reward="scene"]') as MCRewardElement | null)?.__mcReward ||
+      null
+    );
+  }
+
+  private get parallax() {
+    return (
+      (this.child<MCParallaxElement>('[mc-parallax="scene"]') as MCParallaxElement | null)
+        ?.__mcParallax || null
+    );
+  }
+
   private killTimeline() {
     this.timeline?.kill();
     this.timeline = null;
@@ -229,6 +290,8 @@ class MCHeroSequence implements MCController {
     this.depth?.showStaticImage();
     this.colourReveal?.showFinal();
     this.underline?.showFinal();
+    this.reward?.showFinal();
+    this.parallax?.showFinal();
 
     const finalElements = [
       this.child<HTMLElement>('[mc-hero-eyebrow]'),
@@ -276,15 +339,30 @@ class MCHeroSequence implements MCController {
       image: Boolean(image),
     });
 
-    const [depth, colourReveal, underline] = [this.depth, this.colourReveal, this.underline];
+    if (this.child<HTMLElement>('[mc-reward="scene"]') && !this.reward) {
+      await nextFrame();
+      await nextFrame();
+    }
+
+    const [depth, colourReveal, underline, reward, parallax] = [
+      this.depth,
+      this.colourReveal,
+      this.underline,
+      this.reward,
+      this.parallax,
+    ];
     logger.debug('Resolved child controllers', {
       sequence: this.index + 1,
       depth: Boolean(depth),
       colourReveal: Boolean(colourReveal),
       underline: Boolean(underline),
+      reward: Boolean(reward),
+      parallax: Boolean(parallax),
     });
     await depth?.prepare();
     depth?.resetForParent();
+    reward?.prepare();
+    parallax?.prepare();
     logger.debug('Depth preparation complete', {
       sequence: this.index + 1,
       effectLoaded: depth?.effectLoaded,
@@ -373,6 +451,13 @@ class MCHeroSequence implements MCController {
     );
 
     timeline.call(() => void depth?.replay(), [], visualPosition);
+    timeline.call(() => reward?.play(), [], visualPosition);
+    timeline.call(
+      () => reward?.startScrollParallax(),
+      [],
+      visualPosition + (reward?.entranceDuration || 0)
+    );
+    timeline.call(() => parallax?.playIntro(), [], visualPosition);
 
     if (image) {
       timeline.fromTo(
@@ -564,7 +649,7 @@ export const initMCHeroSequence = () => {
           key: 'visualStart',
           label: 'Visual Start',
           description:
-            'Starts the Hero Depth Reveal or image entrance at this time from the beginning of the Hero.',
+            'Starts the Hero Depth Reveal, Reward entrance, or image entrance at this time from the beginning of the Hero.',
           min: 0,
           max: 4,
           step: 0.05,
@@ -659,6 +744,12 @@ export const initMCHeroSequence = () => {
     sequences.forEach((sequence) => void sequence.init());
     window.addEventListener('mcMotionPreferenceChange', () => {
       sequences.forEach((sequence) => void sequence.rebuild(!reducedMotionEnabled()));
+    });
+    window.addEventListener('mcRewardSettingsChange', () => {
+      sequences.forEach((sequence) => void sequence.rebuild(true));
+    });
+    window.addEventListener('mcParallaxSettingsChange', () => {
+      sequences.forEach((sequence) => void sequence.rebuild(true));
     });
     window.addEventListener(
       'resize',

@@ -4,12 +4,15 @@ import { initForm } from './digerati/form/form';
 import { initMCChalk } from './meloncart/effects/chalk';
 import { initMCColourReveal } from './meloncart/effects/colour-reveal';
 import { initMCDepth } from './meloncart/effects/depth';
+import { initMCFooterLinkSweep } from './meloncart/effects/footer-link-sweep';
 import {
   claimMCHeroSequenceOwnership,
   initMCHeroSequence,
 } from './meloncart/effects/hero-sequence';
 import { initMCIllustration } from './meloncart/effects/illustration';
 import { initMCImageReveal } from './meloncart/effects/image-reveal';
+import { initMCParallax } from './meloncart/effects/parallax';
+import { initMCReward } from './meloncart/effects/reward';
 import { initMCSubmitProxy } from './meloncart/effects/submit-proxy';
 import { initMCUnderline } from './meloncart/effects/underline';
 import { initPrefillUtility } from './meloncart/forms/prefill';
@@ -23,8 +26,11 @@ initMCChalk();
 claimMCHeroSequenceOwnership();
 initMCColourReveal();
 initMCDepth();
+initMCFooterLinkSweep();
 initMCIllustration();
 initMCImageReveal();
+initMCParallax();
+initMCReward();
 initMCSubmitProxy();
 initMCUnderline();
 initMCHeroSequence();
