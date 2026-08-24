@@ -11,6 +11,7 @@ import {
 } from './meloncart/effects/hero-sequence';
 import { initMCIllustration } from './meloncart/effects/illustration';
 import { initMCImageReveal } from './meloncart/effects/image-reveal';
+import { initMCPageNav } from './meloncart/effects/page-nav';
 import { initMCParallax } from './meloncart/effects/parallax';
 import { initMCReward } from './meloncart/effects/reward';
 import { initMCSubmitProxy } from './meloncart/effects/submit-proxy';
@@ -30,6 +31,7 @@ initMCFooterLinkSweep();
 initMCIllustration();
 initMCImageReveal();
 initMCParallax();
+initMCPageNav();
 initMCReward();
 initMCSubmitProxy();
 initMCUnderline();
