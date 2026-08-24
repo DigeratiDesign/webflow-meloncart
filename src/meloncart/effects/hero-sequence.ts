@@ -7,6 +7,18 @@ const SEQUENCE_SELECTOR = '[mc-hero-sequence]';
 const OWNER_VALUE = 'hero-sequence';
 const logger = createLogger('melon', 'hero-sequence', { debug: isMCDebugEnabled });
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+const HERO_SETTING_ATTRIBUTES = {
+  eyebrowStart: 'mc-hero-eyebrow-start',
+  headingStart: 'mc-hero-heading-start',
+  visualStart: 'mc-hero-visual-start',
+  imageScrollDistance: 'mc-hero-image-scroll-distance',
+  underlineStart: 'mc-hero-underline-start',
+  underlineDurationOffset: 'mc-hero-underline-duration-offset',
+  copyStart: 'mc-hero-copy-start',
+  bodyStagger: 'mc-hero-body-stagger',
+  ctaStart: 'mc-hero-cta-start',
+  footnoteStart: 'mc-hero-footnote-start',
+} as const;
 
 type MCDepthController = MCController & {
   image: HTMLImageElement;
@@ -89,6 +101,18 @@ const ensureMC = (): MCHeroNamespace => {
 
 const reducedMotionEnabled = () => window.MC?.motion?.reduced ?? false;
 
+const numberAttribute = (element: HTMLElement, name: string, fallback: number) => {
+  const value = Number.parseFloat(element.getAttribute(name) ?? '');
+
+  return Number.isFinite(value) ? value : fallback;
+};
+
+const optionalNumberAttribute = (element: HTMLElement, name: string) => {
+  const value = Number.parseFloat(element.getAttribute(name) ?? '');
+
+  return Number.isFinite(value) ? value : null;
+};
+
 const registerDebug = (schema: MCDebugSchema) => {
   const mc = ensureMC();
 
@@ -152,6 +176,45 @@ class MCHeroSequence implements MCController {
   constructor(element: HTMLElement, index: number) {
     this.element = element;
     this.index = index;
+    this.settings.eyebrowStart = numberAttribute(
+      element,
+      HERO_SETTING_ATTRIBUTES.eyebrowStart,
+      this.settings.eyebrowStart
+    );
+    this.settings.headingStart = numberAttribute(
+      element,
+      HERO_SETTING_ATTRIBUTES.headingStart,
+      this.settings.headingStart
+    );
+    this.settings.visualStart = optionalNumberAttribute(
+      element,
+      HERO_SETTING_ATTRIBUTES.visualStart
+    );
+    this.settings.imageScrollDistance = numberAttribute(
+      element,
+      HERO_SETTING_ATTRIBUTES.imageScrollDistance,
+      this.settings.imageScrollDistance
+    );
+    this.settings.underlineStart = optionalNumberAttribute(
+      element,
+      HERO_SETTING_ATTRIBUTES.underlineStart
+    );
+    this.settings.underlineDurationOffset = numberAttribute(
+      element,
+      HERO_SETTING_ATTRIBUTES.underlineDurationOffset,
+      this.settings.underlineDurationOffset
+    );
+    this.settings.copyStart = optionalNumberAttribute(element, HERO_SETTING_ATTRIBUTES.copyStart);
+    this.settings.bodyStagger = numberAttribute(
+      element,
+      HERO_SETTING_ATTRIBUTES.bodyStagger,
+      this.settings.bodyStagger
+    );
+    this.settings.ctaStart = optionalNumberAttribute(element, HERO_SETTING_ATTRIBUTES.ctaStart);
+    this.settings.footnoteStart = optionalNumberAttribute(
+      element,
+      HERO_SETTING_ATTRIBUTES.footnoteStart
+    );
   }
 
   get(key: string) {
@@ -199,6 +262,11 @@ class MCHeroSequence implements MCController {
     if (!Number.isFinite(number)) return;
 
     (this.settings as Record<string, number | null>)[key] = Math.max(0, number);
+    const attribute = HERO_SETTING_ATTRIBUTES[key as keyof typeof HERO_SETTING_ATTRIBUTES];
+
+    if (attribute) {
+      this.element.setAttribute(attribute, String(Math.max(0, number)));
+    }
     void this.rebuild(true);
   }
 
