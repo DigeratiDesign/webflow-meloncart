@@ -91,6 +91,9 @@ const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, v
 
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
+// Preserve the configured maximum while making small movements near centre more responsive.
+const pointerResponse = (value: number) => Math.sign(value) * Math.sqrt(Math.abs(value));
+
 const ensureMC = (): MCDepthNamespace => {
   window.MC ||= {};
 
@@ -1461,8 +1464,8 @@ void main() {
       return;
     }
 
-    this.target.x = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
-    this.target.y = -(((event.clientY - rect.top) / rect.height - 0.5) * 2);
+    this.target.x = pointerResponse(((event.clientX - rect.left) / rect.width - 0.5) * 2);
+    this.target.y = pointerResponse(-((event.clientY - rect.top) / rect.height - 0.5) * 2);
 
     this.requestFrame();
   }
