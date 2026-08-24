@@ -16,6 +16,10 @@ const HERO_SETTING_ATTRIBUTES = {
   underlineDurationOffset: 'mc-hero-underline-duration-offset',
   copyStart: 'mc-hero-copy-start',
   bodyStagger: 'mc-hero-body-stagger',
+  cardsStart: 'mc-hero-cards-start',
+  cardsDuration: 'mc-hero-cards-duration',
+  cardsStagger: 'mc-hero-cards-stagger',
+  cardsY: 'mc-hero-cards-y',
   ctaStart: 'mc-hero-cta-start',
   footnoteStart: 'mc-hero-footnote-start',
 } as const;
@@ -92,7 +96,13 @@ type MCHeroNamespace = MCNamespace & {
   preloader?: MCPreloaderAPI;
 };
 
-type TimelineCueKey = 'underlineStart' | 'visualStart' | 'copyStart' | 'ctaStart' | 'footnoteStart';
+type TimelineCueKey =
+  | 'underlineStart'
+  | 'visualStart'
+  | 'copyStart'
+  | 'cardsStart'
+  | 'ctaStart'
+  | 'footnoteStart';
 
 const ensureMC = (): MCHeroNamespace => {
   window.MC ||= {};
@@ -163,6 +173,10 @@ class MCHeroSequence implements MCController {
     footnoteStart: null as number | null,
     bodyDuration: 0.28,
     bodyStagger: 0.08,
+    cardsStart: null as number | null,
+    cardsDuration: 0.5,
+    cardsStagger: 0.12,
+    cardsY: 24,
     underlineDurationOffset: 0.12,
     imageScrollDistance: 50,
   };
@@ -210,6 +224,22 @@ class MCHeroSequence implements MCController {
       HERO_SETTING_ATTRIBUTES.bodyStagger,
       this.settings.bodyStagger
     );
+    this.settings.cardsStart = optionalNumberAttribute(element, HERO_SETTING_ATTRIBUTES.cardsStart);
+    this.settings.cardsDuration = numberAttribute(
+      element,
+      HERO_SETTING_ATTRIBUTES.cardsDuration,
+      this.settings.cardsDuration
+    );
+    this.settings.cardsStagger = numberAttribute(
+      element,
+      HERO_SETTING_ATTRIBUTES.cardsStagger,
+      this.settings.cardsStagger
+    );
+    this.settings.cardsY = numberAttribute(
+      element,
+      HERO_SETTING_ATTRIBUTES.cardsY,
+      this.settings.cardsY
+    );
     this.settings.ctaStart = optionalNumberAttribute(element, HERO_SETTING_ATTRIBUTES.ctaStart);
     this.settings.footnoteStart = optionalNumberAttribute(
       element,
@@ -227,6 +257,16 @@ class MCHeroSequence implements MCController {
     }
 
     if (key === 'copyStart' && !this.child<HTMLElement>('[mc-hero-body]')) {
+      return null;
+    }
+
+    if (
+      (key === 'cardsStart' ||
+        key === 'cardsDuration' ||
+        key === 'cardsStagger' ||
+        key === 'cardsY') &&
+      !this.cards.length
+    ) {
       return null;
     }
 
@@ -322,6 +362,18 @@ class MCHeroSequence implements MCController {
     );
   }
 
+  private get cards() {
+    const container = this.child<HTMLElement>('[mc-hero-cards]');
+
+    if (!container) {
+      return [];
+    }
+
+    return [...container.querySelectorAll<HTMLElement>('[mc-hero-card]')].filter(
+      (card) => card.closest<HTMLElement>(SEQUENCE_SELECTOR) === this.element
+    );
+  }
+
   private killTimeline() {
     this.timeline?.kill();
     this.timeline = null;
@@ -361,12 +413,15 @@ class MCHeroSequence implements MCController {
     this.reward?.showFinal();
     this.parallax?.showFinal();
 
+    const { cards } = this;
+
     const finalElements = [
       this.child<HTMLElement>('[mc-hero-eyebrow]'),
       this.child<HTMLElement>('[mc-hero-body]'),
       this.child<HTMLElement>('[mc-hero-cta]'),
       this.child<HTMLElement>('[mc-hero-footnote]'),
       this.child<HTMLElement>('[mc-hero-image]'),
+      ...cards,
     ].filter(Boolean);
 
     gsap.set(finalElements, { autoAlpha: 1, clearProps: 'transform' });
@@ -397,6 +452,7 @@ class MCHeroSequence implements MCController {
     const cta = this.child<HTMLElement>('[mc-hero-cta]');
     const footnote = this.child<HTMLElement>('[mc-hero-footnote]');
     const image = this.child<HTMLElement>('[mc-hero-image]');
+    const { cards } = this;
 
     logger.debug('Resolved hero content elements', {
       sequence: this.index + 1,
@@ -405,6 +461,7 @@ class MCHeroSequence implements MCController {
       cta: Boolean(cta),
       footnote: Boolean(footnote),
       image: Boolean(image),
+      cards: cards.length,
     });
 
     if (this.child<HTMLElement>('[mc-reward="scene"]') && !this.reward) {
@@ -579,6 +636,27 @@ class MCHeroSequence implements MCController {
       cta: Boolean(cta),
     });
 
+    if (cards.length) {
+      const bodyEnd =
+        bodyPosition +
+        this.settings.bodyDuration +
+        Math.max(0, bodyLines.length - 1) * this.settings.bodyStagger;
+      const cardsPosition = this.resolveCue('cardsStart', bodyEnd + 0.2);
+
+      timeline.fromTo(
+        cards,
+        { autoAlpha: 0, y: this.settings.cardsY },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: this.settings.cardsDuration,
+          stagger: this.settings.cardsStagger,
+          ease: 'power1.out',
+        },
+        cardsPosition
+      );
+    }
+
     const ctaPosition = this.resolveCue('ctaStart', bodyPosition + 0.12);
     if (cta) {
       timeline.fromTo(
@@ -600,13 +678,17 @@ class MCHeroSequence implements MCController {
 
     // Commit every entrance's first frame before the preloader reveals the Hero.
     headingTimeline?.totalTime(0, true);
-    gsap.set([eyebrow, colourReveal?.component, body, cta, footnote, image].filter(Boolean), {
-      autoAlpha: 0,
-    });
+    gsap.set(
+      [eyebrow, colourReveal?.component, body, cta, footnote, image, ...cards].filter(Boolean),
+      { autoAlpha: 0 }
+    );
     if (bodyLines.length) {
       gsap.set(bodyLines, { autoAlpha: 0, y: 12 });
     } else if (body) {
       gsap.set(body, { autoAlpha: 0, y: 12 });
+    }
+    if (cards.length) {
+      gsap.set(cards, { autoAlpha: 0, y: this.settings.cardsY });
     }
     timeline.totalTime(0, true);
 
@@ -779,6 +861,50 @@ export const initMCHeroSequence = () => {
           max: 0.5,
           step: 0.01,
           suffix: 's',
+          event: 'change',
+        },
+        {
+          type: 'range',
+          key: 'cardsStart',
+          label: 'Cards Start',
+          description: 'Starts the Hero information-card entrance at this time.',
+          min: 0,
+          max: 4,
+          step: 0.05,
+          suffix: 's',
+          event: 'change',
+        },
+        {
+          type: 'range',
+          key: 'cardsDuration',
+          label: 'Cards Duration',
+          description: 'Sets the entrance duration for each Hero information card.',
+          min: 0.1,
+          max: 2,
+          step: 0.05,
+          suffix: 's',
+          event: 'change',
+        },
+        {
+          type: 'range',
+          key: 'cardsStagger',
+          label: 'Cards Stagger',
+          description: 'Sets the delay between Hero information-card entrances.',
+          min: 0,
+          max: 1,
+          step: 0.01,
+          suffix: 's',
+          event: 'change',
+        },
+        {
+          type: 'range',
+          key: 'cardsY',
+          label: 'Cards Rise',
+          description: 'Sets how far below their final position Hero cards begin.',
+          min: 0,
+          max: 80,
+          step: 1,
+          suffix: 'px',
           event: 'change',
         },
         {

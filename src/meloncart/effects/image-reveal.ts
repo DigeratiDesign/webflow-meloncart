@@ -2,7 +2,7 @@ import { createLogger, isMCDebugEnabled } from '../../digerati/core/logger';
 import type { MCNamespace } from '../../digerati/core/types';
 
 const IMAGE_SELECTOR =
-  'img[loading="lazy"]:not([mc-image-reveal="off"]), img[mc-image-reveal]:not([mc-image-reveal="off"])';
+  'img[loading="lazy"]:not([mc-image-reveal="off"]):not([mc-reward="shape"]), img[mc-image-reveal]:not([mc-image-reveal="off"]):not([mc-reward="shape"])';
 const BACKGROUND_SELECTOR = '[mc-image-reveal]:not(img):not([mc-image-reveal="off"])';
 const REVEAL_DURATION = 600;
 const logger = createLogger('melon', 'image-reveal', { debug: isMCDebugEnabled });

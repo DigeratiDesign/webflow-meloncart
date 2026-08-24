@@ -60,6 +60,7 @@ class MCRewardScene {
   rotationAmount = DEFAULT_ROTATION_AMOUNT;
   scrollFrame: number | null = null;
   scrollParallaxStarted = false;
+  scrollParallaxStartY = 0;
 
   constructor(element: HTMLElement) {
     this.element = element;
@@ -71,10 +72,14 @@ class MCRewardScene {
   }
 
   get scrollParallaxEnabled() {
-    return (
-      this.element.hasAttribute('mc-reward-scroll-parallax') ||
-      this.shapes.some((shape) => shape.depth > 0)
-    );
+    const settingElement = this.element.closest<HTMLElement>('[mc-reward-scroll-parallax]');
+    const setting = settingElement?.getAttribute('mc-reward-scroll-parallax');
+
+    if (setting === 'off') {
+      return false;
+    }
+
+    return setting !== undefined;
   }
 
   private readonly handleScroll = () => {
@@ -107,15 +112,14 @@ class MCRewardScene {
       return;
     }
 
-    const sceneRect = this.element.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
 
-    if (!viewportHeight || sceneRect.bottom < 0 || sceneRect.top > viewportHeight) {
+    if (!viewportHeight) {
       return;
     }
 
-    const progress = (viewportHeight - sceneRect.top) / (viewportHeight + sceneRect.height);
-    const offset = gsap.utils.clamp(-1, 1, (progress - 0.5) * 2);
+    const distanceScrolled = Math.max(0, window.scrollY - this.scrollParallaxStartY);
+    const offset = gsap.utils.clamp(0, 1, distanceScrolled / viewportHeight);
     const distance = Math.max(
       0,
       Number.parseFloat(this.element.getAttribute('mc-reward-scroll-distance') ?? '') ||
@@ -138,14 +142,7 @@ class MCRewardScene {
   }
 
   startScrollParallax() {
-    if (this.scrollParallaxStarted || !this.scrollParallaxEnabled || reducedMotionEnabled()) {
-      return;
-    }
-
-    this.scrollParallaxStarted = true;
-    window.addEventListener('scroll', this.handleScroll, { passive: true });
-    this.handleScroll();
-    logger.debug('Scroll parallax enabled', { element: this.element, shapes: this.shapes.length });
+    // Reward scenes intentionally never use scroll parallax.
   }
 
   private directionFor(shape: HTMLElement): RewardDirection {
@@ -200,6 +197,7 @@ class MCRewardScene {
       this.scrollFrame = null;
     }
     this.scrollParallaxStarted = false;
+    this.scrollParallaxStartY = 0;
     gsap.killTweensOf(this.shapes.map(({ element }) => element));
   }
 
@@ -217,19 +215,17 @@ class MCRewardScene {
       return;
     }
 
-    this.shapes.forEach(({ element, index }) => {
-      const from = this.directionFor(element);
-      const { x, y } = this.getOffscreenTransform(element, from);
-
-      gsap.set(element, {
-        x,
-        y,
-        rotation: this.getRotation(element, index, from),
-        scale: INITIAL_SCALE,
-        opacity: 1,
+    gsap.set(
+      this.shapes.map(({ element }) => element),
+      {
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scale: 1,
+        autoAlpha: 0,
         transformOrigin: '50% 50%',
-      });
-    });
+      }
+    );
   }
 
   play() {
@@ -239,16 +235,26 @@ class MCRewardScene {
 
     this.timeline = gsap.timeline({ delay: 0.08 });
     this.shapes.forEach(({ element }, index) => {
+      const from = this.directionFor(element);
+      const { x, y } = this.getOffscreenTransform(element, from);
       const duration = ENTER_DURATION + (index % 3) * 0.05;
       const position = index * ENTER_STAGGER;
 
-      this.timeline?.to(
+      this.timeline?.fromTo(
         element,
+        {
+          x,
+          y,
+          rotation: this.getRotation(element, index, from),
+          scale: INITIAL_SCALE,
+          autoAlpha: 0,
+        },
         {
           x: 0,
           y: 0,
           rotation: 0,
           scale: 1,
+          autoAlpha: 1,
           // Angular velocity falls away rapidly as each shape reaches its final position.
           duration,
           ease: 'power4.out',
