@@ -12,7 +12,9 @@ const ENTRY_POINTS = ['src/index.ts'];
 // Config dev serving
 const LIVE_RELOAD = !PRODUCTION;
 const SERVE_PORT = 3000;
-const SERVE_ORIGIN = `http://localhost:${SERVE_PORT}`;
+const SERVE_ORIGIN = `https://localhost:${SERVE_PORT}`;
+const SERVE_KEY = '.cert/localhost-key.pem';
+const SERVE_CERT = '.cert/localhost.pem';
 
 // Create context
 const context = await esbuild.context({
@@ -37,10 +39,13 @@ if (PRODUCTION) {
 // Watch and serve files in dev
 else {
   await context.watch();
+
   await context
     .serve({
       servedir: BUILD_DIRECTORY,
       port: SERVE_PORT,
+      keyfile: SERVE_KEY,
+      certfile: SERVE_CERT,
     })
     .then(logServedFiles);
 }

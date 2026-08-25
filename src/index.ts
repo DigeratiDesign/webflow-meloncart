@@ -17,6 +17,7 @@ import { initMCReward } from './meloncart/effects/reward';
 import { initMCSubmitProxy } from './meloncart/effects/submit-proxy';
 import { initMCUnderline } from './meloncart/effects/underline';
 import { initPrefillUtility } from './meloncart/forms/prefill';
+import { initMCMaxWidth } from './meloncart/max-width';
 import { initMCPreloader } from './meloncart/preloader';
 import { initTheme } from './meloncart/theme';
 
@@ -30,6 +31,7 @@ initMCDepth();
 initMCFooterLinkSweep();
 initMCIllustration();
 initMCImageReveal();
+initMCMaxWidth();
 initMCParallax();
 initMCPageNav();
 initMCReward();

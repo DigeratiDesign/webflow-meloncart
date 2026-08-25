@@ -281,60 +281,67 @@ class MCColourReveal {
     this.component.style.removeProperty('--clip-progress');
     this.component.style.removeProperty('--color-progress');
 
-    this.split = SplitText.create(this.component, {
-      type: 'lines',
-      autoSplit: true,
-      mask: 'lines',
-      linesClass: 'line',
-      onSplit: (self) => {
-        this.lastLineStart = self.lines.length > 1 ? this.settings.stagger : 0;
-        const timeline = this.createGSAPTimeline({
-          attachScrollTrigger,
-          paused,
-        });
+    // SplitText may defer its first split until after layout. Parent timelines must wait
+    // for that callback or they can attach an empty heading animation.
+    await new Promise<void>((resolve) => {
+      this.split = SplitText.create(this.component, {
+        type: 'lines',
+        // The hero owns this timeline and intentionally avoids resize rebuilds after playback.
+        // A later auto-split would replace its attached child timeline with an unplayed one.
+        autoSplit: !this.parentOwned,
+        mask: 'lines',
+        linesClass: 'line',
+        onSplit: (self) => {
+          this.lastLineStart = self.lines.length > 1 ? this.settings.stagger : 0;
+          const timeline = this.createGSAPTimeline({
+            attachScrollTrigger,
+            paused,
+          });
 
-        timeline.set(this.component, {
-          visibility: 'visible',
-        });
+          timeline.set(this.component, {
+            visibility: 'visible',
+          });
 
-        timeline.fromTo(
-          self.lines,
-          {
-            '--clip-progress': '0%',
-          },
-          {
-            '--clip-progress': '100%',
-            duration: this.settings.duration,
-            stagger: {
-              amount: this.settings.stagger,
+          timeline.fromTo(
+            self.lines,
+            {
+              '--clip-progress': '0%',
             },
+            {
+              '--clip-progress': '100%',
+              duration: this.settings.duration,
+              stagger: {
+                amount: this.settings.stagger,
+              },
+            }
+          );
+
+          timeline.fromTo(
+            self.lines,
+            {
+              '--color-progress': '100%',
+            },
+            {
+              '--color-progress': '0%',
+              delay: 0.2,
+              duration: this.settings.colourDuration,
+              stagger: {
+                amount: this.settings.stagger,
+              },
+            },
+            0
+          );
+
+          this.timeline = timeline;
+          resolve();
+
+          if (playImmediately) {
+            timeline.play(0);
           }
-        );
 
-        timeline.fromTo(
-          self.lines,
-          {
-            '--color-progress': '100%',
-          },
-          {
-            '--color-progress': '0%',
-            delay: 0.2,
-            duration: this.settings.colourDuration,
-            stagger: {
-              amount: this.settings.stagger,
-            },
-          },
-          0
-        );
-
-        this.timeline = timeline;
-
-        if (playImmediately) {
-          timeline.play(0);
-        }
-
-        return timeline;
-      },
+          return timeline;
+        },
+      });
     });
 
     this.ready = true;
