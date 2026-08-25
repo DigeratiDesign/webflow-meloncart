@@ -854,20 +854,12 @@ const initSequence = (sequenceElement: HTMLElement) => {
       trigger: sequenceElement,
       start: settings.start,
       markers: getScrollTriggerDebug(),
+      once: true,
       onEnter: () => {
         revealWrappers(instances);
         timeline?.pause(0);
         instances.forEach(hideInstance);
         timeline?.restart();
-      },
-      onEnterBack: () => {
-        revealWrappers(instances);
-        timeline?.pause();
-        instances.forEach(showInstance);
-      },
-      onLeaveBack: () => {
-        timeline?.pause(0);
-        instances.forEach(hideInstance);
       },
     });
 

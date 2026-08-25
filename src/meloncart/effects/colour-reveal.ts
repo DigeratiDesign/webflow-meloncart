@@ -230,14 +230,15 @@ class MCColourReveal {
     paused,
   }: Omit<BuildTimelineOptions, 'playImmediately'>): GSAPTimeline {
     return gsap!.timeline({
-      paused,
+      // Standalone reveals wait for their viewport trigger instead of running during setup.
+      paused: attachScrollTrigger || paused,
       scrollTrigger: attachScrollTrigger
         ? {
             trigger: this.component,
             start: this.settings.start,
             end: 'top 80%',
             markers: getScrollTriggerDebug(),
-            toggleActions: 'none play none reset',
+            toggleActions: 'none play none none',
           }
         : undefined,
     });

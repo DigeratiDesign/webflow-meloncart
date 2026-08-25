@@ -117,13 +117,14 @@ class MCUnderline {
     this.destroy();
 
     const timeline = gsap.timeline({
-      paused,
+      // Standalone underlines wait for their viewport trigger instead of running during setup.
+      paused: attachScrollTrigger || paused,
       scrollTrigger: attachScrollTrigger
         ? {
             trigger: this.element,
             start: this.settings.start,
             markers: getScrollTriggerDebug(),
-            toggleActions: 'play none none reset',
+            toggleActions: 'play none none none',
             onEnter: () => logger.debug('Scroll trigger entered', { element: this.element }),
           }
         : undefined,

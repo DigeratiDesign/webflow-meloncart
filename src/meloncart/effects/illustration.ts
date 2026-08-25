@@ -646,12 +646,9 @@ const createSequenceController = (section: HTMLElement, sectionIndex: number) =>
       trigger: section,
       start: settings.start,
       markers: getScrollTriggerDebug(),
+      once: true,
       onEnter: () => {
         master?.play(0);
-      },
-      onLeaveBack: () => {
-        master?.pause(0);
-        illustrations.forEach(prepareIllustration);
       },
     });
 
