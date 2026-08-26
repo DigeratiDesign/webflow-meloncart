@@ -58,6 +58,7 @@
     .mc-debug-disclosure:focus-visible,.mc-debug-icon-button:focus-visible{outline:2px solid var(--mc-debug-accent);outline-offset:3px;border-radius:6px}
     .mc-debug-disclosure-copy{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
     .mc-debug-disclosure-icon{display:flex;align-items:center;justify-content:center;flex:0 0 auto;width:16px;height:16px;color:var(--mc-debug-accent);transition:transform .18s ease}
+    .mc-debug-disclosure-icon svg{display:block;width:100%;height:100%}
     .mc-debug-disclosure[aria-expanded="true"] .mc-debug-disclosure-icon{transform:rotate(90deg)}
     .mc-debug-title{min-width:0;flex:1;overflow:hidden;color:rgba(255,255,255,.9);font-weight:700;text-overflow:ellipsis;white-space:nowrap}
     .mc-debug-section-body[hidden]{display:none}
