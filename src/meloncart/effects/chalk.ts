@@ -42,6 +42,13 @@ type ChalkStamp = {
   };
 };
 
+type SVGViewBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 type BrushLayer = {
   group: SVGGElement;
   circles: SVGCircleElement[];
@@ -105,6 +112,8 @@ type ChalkStats = {
   icons: number;
   generatedElements: number;
   averagePerIcon: number;
+  activeGeneratedElements: number;
+  activeAveragePerIcon: number;
   perIcon: Array<{
     index: number;
     generatedElements: number;
@@ -205,11 +214,13 @@ const setChalkEnabled = (enabled: boolean) => {
     applyChalkEnabled(instance, enabled);
     applyChalkBend(instance, instance.settings.bendEnabled);
   });
+  refreshChalkStats();
 };
 
 const setChalkBendEnabled = (enabled: boolean) => {
   document.body.setAttribute(CHALK_BEND_ENABLED_ATTRIBUTE, String(enabled));
   chalkInstances.forEach((instance) => applyChalkBend(instance, enabled));
+  refreshChalkStats();
 };
 
 const seededRandom = (seed: number) => {
@@ -329,15 +340,19 @@ const addBendFilter = (
   id: string,
   bend: number,
   seed: number,
-  geometryScale: number
+  geometryScale: number,
+  viewBox: SVGViewBox
 ) => {
   const filter = document.createElementNS(SVG_NS, 'filter');
+  const displacementScale = (0.45 + bend * 1.05) * geometryScale;
+  const padding = Math.max(Math.max(viewBox.width, viewBox.height) * 0.45, displacementScale * 2);
 
   filter.setAttribute('id', id);
-  filter.setAttribute('x', '-45%');
-  filter.setAttribute('y', '-45%');
-  filter.setAttribute('width', '190%');
-  filter.setAttribute('height', '190%');
+  filter.setAttribute('filterUnits', 'userSpaceOnUse');
+  filter.setAttribute('x', String(viewBox.x - padding));
+  filter.setAttribute('y', String(viewBox.y - padding));
+  filter.setAttribute('width', String(viewBox.width + padding * 2));
+  filter.setAttribute('height', String(viewBox.height + padding * 2));
   filter.setAttribute('color-interpolation-filters', 'sRGB');
 
   if (bend <= 0.001) {
@@ -361,7 +376,7 @@ const addBendFilter = (
   const displacement = document.createElementNS(SVG_NS, 'feDisplacementMap');
   displacement.setAttribute('in', 'SourceGraphic');
   displacement.setAttribute('in2', 'softNoise');
-  displacement.setAttribute('scale', ((0.45 + bend * 1.05) * geometryScale).toFixed(3));
+  displacement.setAttribute('scale', displacementScale.toFixed(3));
   displacement.setAttribute('xChannelSelector', 'R');
   displacement.setAttribute('yChannelSelector', 'G');
 
@@ -518,12 +533,18 @@ const refreshChalkStats = () => {
     (n, instance) => n + (instance.generatedElements || 0),
     0
   );
+  const activeGeneratedElements = instances.reduce(
+    (n, instance) => n + (instance.settings.enabled ? instance.generatedElements || 0 : 0),
+    0
+  );
   const mc = ensureMC();
 
   mc.chalkStats = {
     icons: instances.length,
     generatedElements,
     averagePerIcon: instances.length ? generatedElements / instances.length : 0,
+    activeGeneratedElements,
+    activeAveragePerIcon: instances.length ? activeGeneratedElements / instances.length : 0,
     perIcon: instances.map((instance, index) => ({
       index: index + 1,
       generatedElements: instance.generatedElements || 0,
@@ -606,7 +627,7 @@ const applyChalk = (wrapper: HTMLElement, index: number, stamp: ChalkStamp) => {
   stampDefinition.appendChild(stampPath);
   defs.appendChild(stampDefinition);
 
-  addBendFilter(defs, bendId, bend, DEFAULTS.seed + index * 17, geometryScale);
+  addBendFilter(defs, bendId, bend, DEFAULTS.seed + index * 17, geometryScale, viewBox);
 
   const mask = document.createElementNS(SVG_NS, 'mask');
   mask.setAttribute('id', maskId);
@@ -743,7 +764,7 @@ const applyChalk = (wrapper: HTMLElement, index: number, stamp: ChalkStamp) => {
           oldFilter.remove();
         }
 
-        addBendFilter(defs, bendId, next, DEFAULTS.seed + index * 17, geometryScale);
+        addBendFilter(defs, bendId, next, DEFAULTS.seed + index * 17, geometryScale, viewBox);
 
         applyChalkBend(this, this.settings.bendEnabled);
 
@@ -1143,6 +1164,11 @@ export const initMCChalk = () => {
         (total, instance) => total + (instance.generatedElements || 0),
         0
       );
+      const activeGeneratedElements = instances.reduce(
+        (total, instance) =>
+          total + (instance.settings.enabled ? instance.generatedElements || 0 : 0),
+        0
+      );
       const averagePerIcon = instances.length ? generatedElements / instances.length : 0;
 
       const mc = ensureMC();
@@ -1151,6 +1177,8 @@ export const initMCChalk = () => {
         icons: instances.length,
         generatedElements,
         averagePerIcon,
+        activeGeneratedElements,
+        activeAveragePerIcon: instances.length ? activeGeneratedElements / instances.length : 0,
         perIcon: instances.map((instance, index) => ({
           index: index + 1,
           generatedElements: instance.generatedElements || 0,
@@ -1191,12 +1219,12 @@ export const initMCChalk = () => {
             value: () => ensureMC().chalkStats?.icons || 0,
           },
           {
-            label: 'Generated DOM nodes',
-            value: () => ensureMC().chalkStats?.generatedElements || 0,
+            label: 'Active generated DOM nodes',
+            value: () => ensureMC().chalkStats?.activeGeneratedElements || 0,
           },
           {
             label: 'Average / icon',
-            value: () => ensureMC().chalkStats?.averagePerIcon || 0,
+            value: () => ensureMC().chalkStats?.activeAveragePerIcon || 0,
           },
         ],
         controls: [
