@@ -4,6 +4,7 @@ import SplitText from 'gsap/SplitText';
 
 let registered = false;
 let scrollTriggerDebug = false;
+let scrollTriggerRefreshFrame: number | null = null;
 
 const scrollTriggerDebugListeners = new Set<(enabled: boolean) => void>();
 
@@ -38,6 +39,18 @@ export const onScrollTriggerDebugChange = (listener: (enabled: boolean) => void)
   return () => {
     scrollTriggerDebugListeners.delete(listener);
   };
+};
+
+/** Coalesce layout-heavy ScrollTrigger refreshes requested during the same frame. */
+export const requestScrollTriggerRefresh = (): void => {
+  if (scrollTriggerRefreshFrame !== null) {
+    return;
+  }
+
+  scrollTriggerRefreshFrame = requestAnimationFrame(() => {
+    scrollTriggerRefreshFrame = null;
+    ScrollTrigger.refresh();
+  });
 };
 
 export { gsap, registerPlugins, ScrollTrigger, SplitText };

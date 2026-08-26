@@ -2,7 +2,7 @@ import {
   getScrollTriggerDebug,
   gsap,
   onScrollTriggerDebugChange,
-  ScrollTrigger,
+  requestScrollTriggerRefresh,
 } from '../../digerati/core/gsap';
 import { createLogger, isMCDebugEnabled } from '../../digerati/core/logger';
 import type { MCDebugSchema, MCNamespace } from '../../digerati/core/types';
@@ -222,7 +222,7 @@ class MCUnderlineGroup {
       underline.init();
     });
 
-    ScrollTrigger.refresh();
+    requestScrollTriggerRefresh();
   }
 
   replay() {
@@ -293,8 +293,8 @@ export const initMCUnderline = () => {
       group.apply();
     });
 
-    const refresh = () => ScrollTrigger.refresh();
-    requestAnimationFrame(refresh);
+    const refresh = () => requestScrollTriggerRefresh();
+    refresh();
     window.addEventListener('load', refresh, { once: true });
 
     logger.info(`Initialised ${underlines.length} underline(s).`);

@@ -1,4 +1,3 @@
-import { getScrollTriggerDebug, gsap, onScrollTriggerDebugChange } from '../../digerati/core/gsap';
 import { createLogger, isMCDebugEnabled } from '../../digerati/core/logger';
 import type { MCDebugSchema, MCNamespace } from '../../digerati/core/types';
 
@@ -14,25 +13,11 @@ const DEFAULTS = {
   finalFade: 900,
   trackX: 0,
   trackY: 0,
-  scrollX: 0,
-  scrollY: 0,
-  autoX: 0,
-  autoY: 0,
-  autoZoom: 0,
-  autoDuration: 40,
   zoom: 1.04,
   direction: 1,
   duration: 2850,
 };
 const logger = createLogger('melon', 'depth', { debug: isMCDebugEnabled });
-
-type GSAPTween = {
-  kill?: () => void;
-  scrollTrigger?: {
-    refresh: () => void;
-    kill?: () => void;
-  };
-};
 
 declare global {
   interface HTMLImageElement {
@@ -49,12 +34,6 @@ type DepthSettings = {
   finalFade: number;
   trackX: number;
   trackY: number;
-  scrollX: number;
-  scrollY: number;
-  autoX: number;
-  autoY: number;
-  autoZoom: number;
-  autoDuration: number;
   zoom: number;
   direction: number;
   duration: number;
@@ -66,9 +45,6 @@ type DepthUniforms = {
   imageRes: WebGLUniformLocation | null;
   canvasSize: WebGLUniformLocation | null;
   pointer: WebGLUniformLocation | null;
-  scroll: WebGLUniformLocation | null;
-  auto: WebGLUniformLocation | null;
-  autoZoom: WebGLUniformLocation | null;
   time: WebGLUniformLocation | null;
   progress: WebGLUniformLocation | null;
   trace: WebGLUniformLocation | null;
@@ -241,15 +217,7 @@ class MCDepthReveal {
   canvasCssSize: [number, number];
   pointer: { x: number; y: number };
   target: { x: number; y: number };
-  scroll: { x: number; y: number };
-  auto: { x: number; y: number; zoom: number };
-  autoElapsed: number;
-  autoLastTime: number | null;
   pointerTrackingEnabled: boolean;
-  scrollTrackingEnabled: boolean;
-  autoTrackingEnabled: boolean;
-  scrollTween: GSAPTween | null;
-  scrollTrigger: { refresh: () => void } | null;
   effectLoaded: boolean;
   loadingEffect: boolean;
   reducedStatic: boolean;
@@ -279,12 +247,6 @@ class MCDepthReveal {
       finalFade: attrNumber(image, 'mc-depth-final-fade', DEFAULTS.finalFade),
       trackX: attrNumber(image, 'mc-depth-track-x', DEFAULTS.trackX),
       trackY: attrNumber(image, 'mc-depth-track-y', DEFAULTS.trackY),
-      scrollX: attrNumber(image, 'mc-depth-scroll-x', DEFAULTS.scrollX),
-      scrollY: attrNumber(image, 'mc-depth-scroll-y', DEFAULTS.scrollY),
-      autoX: attrNumber(image, 'mc-depth-auto-x', DEFAULTS.autoX),
-      autoY: attrNumber(image, 'mc-depth-auto-y', DEFAULTS.autoY),
-      autoZoom: attrNumber(image, 'mc-depth-auto-zoom', DEFAULTS.autoZoom),
-      autoDuration: attrNumber(image, 'mc-depth-auto-duration', DEFAULTS.autoDuration),
       zoom: attrNumber(image, 'mc-depth-zoom', DEFAULTS.zoom),
       direction: attrNumber(image, 'mc-depth-direction', DEFAULTS.direction),
       duration: attrNumber(image, 'mc-depth-duration', DEFAULTS.duration),
@@ -300,16 +262,7 @@ class MCDepthReveal {
     this.canvasCssSize = [1, 1];
     this.pointer = { x: 0, y: 0 };
     this.target = { x: 0, y: 0 };
-    this.scroll = { x: 0, y: 0 };
-    this.auto = { x: 0, y: 0, zoom: 0 };
-    this.autoElapsed = 0;
-    this.autoLastTime = null;
     this.pointerTrackingEnabled = this.settings.trackX !== 0 || this.settings.trackY !== 0;
-    this.scrollTrackingEnabled = this.settings.scrollX !== 0 || this.settings.scrollY !== 0;
-    this.autoTrackingEnabled =
-      this.settings.autoX !== 0 || this.settings.autoY !== 0 || this.settings.autoZoom !== 0;
-    this.scrollTween = null;
-    this.scrollTrigger = null;
     this.effectLoaded = false;
     this.loadingEffect = false;
     this.reducedStatic = false;
@@ -411,10 +364,6 @@ class MCDepthReveal {
         window.addEventListener('pointermove', this.boundPointerMove, { passive: true });
       }
 
-      if (this.scrollTrackingEnabled) {
-        this.createScrollTracking();
-      }
-
       this.ready = true;
       this.effectLoaded = true;
       this.loadingEffect = false;
@@ -442,8 +391,6 @@ class MCDepthReveal {
     if (this.canvas) this.canvas.style.display = 'none';
 
     this.cancelScheduledFrames();
-
-    this.autoLastTime = null;
   }
 
   async onMotionPreferenceChange() {
@@ -496,56 +443,16 @@ class MCDepthReveal {
     this.target.y = 0;
   }
 
-  syncScrollTracking() {
-    const enabled = this.settings.scrollX !== 0 || this.settings.scrollY !== 0;
-
-    if (this.scrollTrackingEnabled === enabled) {
-      if (enabled && this.effectLoaded) {
-        this.createScrollTracking();
-      }
-
-      return;
-    }
-
-    this.scrollTrackingEnabled = enabled;
-
-    if (!this.effectLoaded) {
-      return;
-    }
-
-    if (enabled) {
-      this.createScrollTracking();
-      this.scrollTrigger?.refresh();
-      return;
-    }
-
-    this.scrollTween?.kill?.();
-    this.scrollTween = null;
-    this.scrollTrigger = null;
-    this.scroll.x = 0;
-    this.scroll.y = 0;
-  }
-
   set(name: string, rawValue: unknown) {
     if (!(name in this.settings)) return;
     const value = Number(rawValue);
     if (!Number.isFinite(value)) return;
 
-    if (name === 'autoDuration') {
-      const oldMs = Math.max(1, this.settings.autoDuration * 1000);
-      const progress = (this.autoElapsed % oldMs) / oldMs;
-      this.settings.autoDuration = Math.max(1, value);
-      this.autoElapsed = progress * this.settings.autoDuration * 1000;
-      this.autoLastTime = null;
-    } else {
-      (this.settings as Record<string, number>)[name] = value;
-    }
+    (this.settings as Record<string, number>)[name] = value;
 
     const attributeNames: Partial<Record<keyof DepthSettings, string>> = {
       trackX: 'mc-depth-track-x',
       trackY: 'mc-depth-track-y',
-      scrollX: 'mc-depth-scroll-x',
-      scrollY: 'mc-depth-scroll-y',
     };
 
     const attributeName = attributeNames[name as keyof DepthSettings];
@@ -558,9 +465,6 @@ class MCDepthReveal {
     }
 
     this.syncPointerTracking();
-    this.syncScrollTracking();
-    this.autoTrackingEnabled =
-      this.settings.autoX !== 0 || this.settings.autoY !== 0 || this.settings.autoZoom !== 0;
 
     if (!motion().reduced) this.requestFrame();
   }
@@ -649,13 +553,6 @@ class MCDepthReveal {
     this.pointer.y = 0;
     this.target.x = 0;
     this.target.y = 0;
-    this.scroll.x = 0;
-    this.scroll.y = 0;
-    this.auto.x = 0;
-    this.auto.y = 0;
-    this.auto.zoom = 0;
-    this.autoElapsed = 0;
-    this.autoLastTime = null;
   }
 
   createCanvas() {
@@ -733,78 +630,9 @@ class MCDepthReveal {
   onResize() {
     this.positionCanvas();
 
-    this.scrollTrigger?.refresh();
-
     if (this.ready && this.inView && !motion().reduced) {
       this.requestFrame();
     }
-  }
-
-  createScrollTracking() {
-    this.scrollTween?.kill?.();
-    this.scrollTween = null;
-    this.scrollTrigger = null;
-
-    this.scrollTween = gsap.to(this.scroll, {
-      x: this.settings.scrollX,
-      y: this.settings.scrollY,
-      ease: 'none',
-      scrollTrigger: {
-        trigger: this.image.parentElement || this.image,
-        start: 'top top',
-        end: 'bottom top',
-        markers: getScrollTriggerDebug(),
-        scrub: true,
-        invalidateOnRefresh: true,
-        onUpdate: () => {
-          if (this.ready && this.revealComplete && this.inView && !motion().reduced) {
-            this.requestFrame();
-          }
-        },
-      },
-    });
-
-    this.scrollTrigger = this.scrollTween.scrollTrigger || null;
-  }
-
-  refreshScrollTriggerDebug() {
-    if (!this.effectLoaded) {
-      return;
-    }
-
-    if (!this.scrollTrackingEnabled) {
-      this.scrollTween?.kill?.();
-      this.scrollTween = null;
-      this.scrollTrigger = null;
-      return;
-    }
-
-    this.createScrollTracking();
-    this.scrollTrigger?.refresh();
-  }
-
-  updateAuto(now: number) {
-    if (!this.autoTrackingEnabled || !this.revealComplete || !this.inView || motion().reduced) {
-      this.autoLastTime = null;
-      return;
-    }
-
-    if (this.autoLastTime === null) {
-      this.autoLastTime = now;
-      return;
-    }
-
-    const delta = Math.min(now - this.autoLastTime, 100);
-    this.autoLastTime = now;
-    this.autoElapsed += delta;
-
-    const durationMs = Math.max(1000, this.settings.autoDuration * 1000);
-    const phase = ((this.autoElapsed % durationMs) / durationMs) * Math.PI * 2;
-    const travel = 0.5 - 0.5 * Math.cos(phase);
-
-    this.auto.x = travel * this.settings.autoX;
-    this.auto.y = travel * this.settings.autoY;
-    this.auto.zoom = travel * this.settings.autoZoom;
   }
 
   createWebGL() {
@@ -853,10 +681,6 @@ uniform sampler2D uDepth;
 uniform vec2 uImageRes;
 uniform vec2 uCanvasSize;
 uniform vec2 uPointer;
-uniform vec2 uScroll;
-uniform vec2 uAuto;
-uniform float uAutoZoom;
-
 uniform float uTime;
 uniform float uProgress;
 
@@ -879,8 +703,7 @@ out vec4 outColor;
 
 
 vec2 alignedUv(vec2 uv) {
-  float zoom = uZoom + uAutoZoom;
-  return (uv - .5) / zoom + .5;
+  return (uv - .5) / uZoom + .5;
 }
 
 
@@ -1046,13 +869,8 @@ void main() {
       uTrackY
     );
 
-  vec2 offsetPx =
-    pointerPx +
-    uScroll +
-    uAuto;
-
   vec2 offsetUv =
-    offsetPx /
+    pointerPx /
     max(
       uCanvasSize,
       vec2(1.0)
@@ -1329,9 +1147,6 @@ void main() {
       imageRes: uniform('uImageRes'),
       canvasSize: uniform('uCanvasSize'),
       pointer: uniform('uPointer'),
-      scroll: uniform('uScroll'),
-      auto: uniform('uAuto'),
-      autoZoom: uniform('uAutoZoom'),
       time: uniform('uTime'),
       progress: uniform('uProgress'),
       trace: uniform('uTrace'),
@@ -1393,7 +1208,6 @@ void main() {
         const entry = entries[0];
 
         this.inView = entry.isIntersecting;
-        this.autoLastTime = null;
 
         if (this.inView) {
           this.positionCanvas();
@@ -1491,7 +1305,6 @@ void main() {
 
     const elapsed = now - this.startTime;
 
-    this.updateAuto(now);
     this.drawFrame(now, elapsed);
 
     if (!this.revealComplete) {
@@ -1500,11 +1313,6 @@ void main() {
     }
 
     if (!this.inView || motion().reduced) {
-      return;
-    }
-
-    if (this.autoTrackingEnabled) {
-      this.requestFrame();
       return;
     }
 
@@ -1539,11 +1347,6 @@ void main() {
       this.pointer.y = 0;
       this.target.x = 0;
       this.target.y = 0;
-      this.auto.x = 0;
-      this.auto.y = 0;
-      this.auto.zoom = 0;
-      this.autoElapsed = 0;
-      this.autoLastTime = null;
     }
 
     if (this.revealComplete && this.inView && this.pointerTrackingEnabled) {
@@ -1564,17 +1367,6 @@ void main() {
       this.revealComplete && this.pointerTrackingEnabled ? this.pointer.x : 0,
       this.revealComplete && this.pointerTrackingEnabled ? this.pointer.y : 0
     );
-    gl.uniform2f(
-      u.scroll,
-      this.revealComplete && this.scrollTrackingEnabled ? this.scroll.x : 0,
-      this.revealComplete && this.scrollTrackingEnabled ? this.scroll.y : 0
-    );
-    gl.uniform2f(
-      u.auto,
-      this.revealComplete && this.autoTrackingEnabled ? this.auto.x : 0,
-      this.revealComplete && this.autoTrackingEnabled ? this.auto.y : 0
-    );
-    gl.uniform1f(u.autoZoom, this.revealComplete && this.autoTrackingEnabled ? this.auto.zoom : 0);
     gl.uniform1f(u.time, now * 0.001);
     gl.uniform1f(u.progress, progress);
     gl.uniform1f(u.trace, this.settings.trace);
@@ -1605,14 +1397,6 @@ void main() {
 }
 
 export const initMCDepth = () => {
-  onScrollTriggerDebugChange(() => {
-    ensureMC()
-      .depth?.filter(Boolean)
-      .forEach((instance) => {
-        instance.refreshScrollTriggerDebug();
-      });
-  });
-
   const motionMedia = window.matchMedia?.('(prefers-reduced-motion: reduce)');
 
   if (motionMedia) {
@@ -1685,60 +1469,6 @@ export const initMCDepth = () => {
           max: 150,
           step: 1,
           suffix: 'px',
-        },
-        {
-          type: 'range',
-          key: 'scrollX',
-          label: 'Scroll X',
-          min: -150,
-          max: 150,
-          step: 1,
-          suffix: 'px',
-        },
-        {
-          type: 'range',
-          key: 'scrollY',
-          label: 'Scroll Y',
-          min: -150,
-          max: 150,
-          step: 1,
-          suffix: 'px',
-        },
-        {
-          type: 'range',
-          key: 'autoX',
-          label: 'Auto X',
-          min: -150,
-          max: 150,
-          step: 1,
-          suffix: 'px',
-        },
-        {
-          type: 'range',
-          key: 'autoY',
-          label: 'Auto Y',
-          min: -150,
-          max: 150,
-          step: 1,
-          suffix: 'px',
-        },
-        {
-          type: 'range',
-          key: 'autoZoom',
-          label: 'Auto Zoom',
-          min: -0.05,
-          max: 0.08,
-          step: 0.001,
-          decimals: 3,
-        },
-        {
-          type: 'range',
-          key: 'autoDuration',
-          label: 'Duration',
-          min: 4,
-          max: 60,
-          step: 1,
-          suffix: 's',
         },
         { type: 'button', label: 'Replay', action: 'replay' },
       ],

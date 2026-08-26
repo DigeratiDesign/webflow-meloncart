@@ -2,6 +2,7 @@ import {
   getScrollTriggerDebug,
   gsap,
   onScrollTriggerDebugChange,
+  requestScrollTriggerRefresh,
   ScrollTrigger,
 } from '../../digerati/core/gsap';
 import { createLogger } from '../../digerati/core/logger';
@@ -13,6 +14,9 @@ const XLINK_NS = 'http://www.w3.org/1999/xlink';
 const CHALK_SELECTOR = '[mc-chalk]';
 const STAMP_SELECTOR = '[mc-chalk-stamp]';
 const SEQUENCE_SELECTOR = '[mc-chalk-sequence]';
+const CHALK_RENDER_MARGIN = '50% 0px';
+const CHALK_ENABLED_ATTRIBUTE = 'mc-chalk-enabled';
+const CHALK_BEND_ENABLED_ATTRIBUTE = 'mc-chalk-bend-enabled';
 
 const DEFAULTS = {
   bend: 6,
@@ -58,10 +62,18 @@ type ChalkInstance = {
   wrapper: HTMLElement;
   svg: SVGSVGElement;
   treated: SVGGElement;
+  bendId: string;
+  originals: Array<{
+    element: SVGGeometryElement;
+    display: string;
+    filter: string | null;
+  }>;
   brushLayers: BrushLayer[];
   densityTargets: ChalkDensityTarget[];
   generatedElements: number;
   settings: {
+    enabled: boolean;
+    bendEnabled: boolean;
     bend: number;
     maskWidth: number;
     brushDensity: number;
@@ -117,6 +129,35 @@ const stampTransformCache = new Map<string, string[]>();
 const chalkInstances = new Map<HTMLElement, ChalkInstance>();
 const sequenceControllers: ChalkSequenceController[] = [];
 
+const applyChalkEnabled = (instance: ChalkInstance, enabled: boolean) => {
+  instance.settings.enabled = enabled;
+  instance.treated.style.display = enabled ? '' : 'none';
+  instance.originals.forEach(({ element, display }) => {
+    element.style.display = enabled ? 'none' : display;
+  });
+};
+
+const applyChalkBend = (instance: ChalkInstance, enabled: boolean) => {
+  instance.settings.bendEnabled = enabled;
+  const bendActive = enabled && instance.settings.bend > 0.001;
+
+  if (instance.settings.enabled && bendActive) {
+    instance.treated.setAttribute('filter', `url(#${instance.bendId})`);
+  } else {
+    instance.treated.removeAttribute('filter');
+  }
+
+  instance.originals.forEach(({ element, filter }) => {
+    if (!instance.settings.enabled && bendActive) {
+      element.setAttribute('filter', `url(#${instance.bendId})`);
+    } else if (filter === null) {
+      element.removeAttribute('filter');
+    } else {
+      element.setAttribute('filter', filter);
+    }
+  });
+};
+
 const ensureMC = (): MCChalkNamespace => {
   window.MC ||= {};
 
@@ -153,6 +194,22 @@ const booleanAttribute = (element: Element, name: string, fallback = false) => {
   }
 
   return value === '' || value === '1' || value === 'true' || value === 'yes';
+};
+
+const chalkEnabled = () => booleanAttribute(document.body, CHALK_ENABLED_ATTRIBUTE, true);
+const chalkBendEnabled = () => booleanAttribute(document.body, CHALK_BEND_ENABLED_ATTRIBUTE, true);
+
+const setChalkEnabled = (enabled: boolean) => {
+  document.body.setAttribute(CHALK_ENABLED_ATTRIBUTE, String(enabled));
+  chalkInstances.forEach((instance) => {
+    applyChalkEnabled(instance, enabled);
+    applyChalkBend(instance, instance.settings.bendEnabled);
+  });
+};
+
+const setChalkBendEnabled = (enabled: boolean) => {
+  document.body.setAttribute(CHALK_BEND_ENABLED_ATTRIBUTE, String(enabled));
+  chalkInstances.forEach((instance) => applyChalkBend(instance, enabled));
 };
 
 const seededRandom = (seed: number) => {
@@ -519,6 +576,8 @@ const applyChalk = (wrapper: HTMLElement, index: number, stamp: ChalkStamp) => {
     1,
     numberAttribute(wrapper, 'mc-chalk-stamp-density', DEFAULTS.stampDensity)
   );
+  const enabled = chalkEnabled();
+  const bendEnabled = chalkBendEnabled();
 
   const viewBox = getViewBox(svg);
   const geometryScale = Math.max(viewBox.width, viewBox.height) / 48;
@@ -576,6 +635,12 @@ const applyChalk = (wrapper: HTMLElement, index: number, stamp: ChalkStamp) => {
   const brushLayers: BrushLayer[] = [];
   const densityTargets: ChalkDensityTarget[] = [];
 
+  const originalElements = originals.map((original) => ({
+    element: original,
+    display: original.style.display,
+    filter: original.getAttribute('filter'),
+  }));
+
   originals.forEach((original, pathIndex) => {
     const guide = original.cloneNode(false) as SVGGeometryElement;
 
@@ -632,10 +697,14 @@ const applyChalk = (wrapper: HTMLElement, index: number, stamp: ChalkStamp) => {
     wrapper,
     svg,
     treated,
+    bendId,
+    originals: originalElements,
     brushLayers,
     densityTargets,
     generatedElements: Math.max(0, domNodesAfter - domNodesBefore),
     settings: {
+      enabled,
+      bendEnabled,
       bend,
       maskWidth: maskMultiplier,
       brushDensity,
@@ -645,6 +714,18 @@ const applyChalk = (wrapper: HTMLElement, index: number, stamp: ChalkStamp) => {
       return this.settings[name as keyof typeof this.settings];
     },
     set(name, rawValue) {
+      if (name === 'enabled') {
+        setChalkEnabled(Boolean(rawValue));
+
+        return;
+      }
+
+      if (name === 'bendEnabled') {
+        setChalkBendEnabled(Boolean(rawValue));
+
+        return;
+      }
+
       const value = Number(rawValue);
 
       if (!Number.isFinite(value)) {
@@ -664,11 +745,7 @@ const applyChalk = (wrapper: HTMLElement, index: number, stamp: ChalkStamp) => {
 
         addBendFilter(defs, bendId, next, DEFAULTS.seed + index * 17, geometryScale);
 
-        if (next > 0.001) {
-          treated.setAttribute('filter', `url(#${bendId})`);
-        } else {
-          treated.removeAttribute('filter');
-        }
+        applyChalkBend(this, this.settings.bendEnabled);
 
         return;
       }
@@ -729,6 +806,9 @@ const applyChalk = (wrapper: HTMLElement, index: number, stamp: ChalkStamp) => {
     },
   };
 
+  applyChalkEnabled(instance, enabled);
+  applyChalkBend(instance, bendEnabled);
+
   chalkInstances.set(wrapper, instance);
 
   return instance;
@@ -750,6 +830,34 @@ const revealWrapper = (instance: ChalkInstance | null | undefined) => {
 
 const revealWrappers = (instances: ChalkInstance[]) => {
   instances.forEach(revealWrapper);
+};
+
+const cullOffscreenChalk = (wrappers: HTMLElement[]) => {
+  if (typeof IntersectionObserver === 'undefined') {
+    return;
+  }
+
+  const originalVisibility = new WeakMap<HTMLElement, string>();
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        const wrapper = entry.target as HTMLElement;
+
+        wrapper.style.visibility = entry.isIntersecting
+          ? originalVisibility.get(wrapper) || ''
+          : 'hidden';
+      });
+    },
+    {
+      // Keep expensive SVG filters out of Safari's compositor until well before they can appear.
+      rootMargin: CHALK_RENDER_MARGIN,
+    }
+  );
+
+  wrappers.forEach((wrapper) => {
+    originalVisibility.set(wrapper, wrapper.style.visibility);
+    observer.observe(wrapper);
+  });
 };
 
 const addInstanceToTimeline = (
@@ -973,19 +1081,19 @@ const initSequences = () => {
   const mc = ensureMC();
   mc.chalkSequences = sequenceControllers;
 
-  ScrollTrigger.refresh();
+  requestScrollTriggerRefresh();
 
   if (!window.__mcChalkMotionListener) {
     window.__mcChalkMotionListener = true;
 
     window.addEventListener('mcMotionPreferenceChange', () => {
       sequenceControllers.forEach((controller) => controller.applyMotionPreference());
-      ScrollTrigger.refresh();
+      requestScrollTriggerRefresh();
     });
 
     onScrollTriggerDebugChange(() => {
       sequenceControllers.forEach((controller) => controller.rebuild());
-      ScrollTrigger.refresh();
+      requestScrollTriggerRefresh();
     });
 
     reducedMotionQuery.addEventListener?.('change', () => {
@@ -994,7 +1102,7 @@ const initSequences = () => {
       }
 
       sequenceControllers.forEach((controller) => controller.applyMotionPreference());
-      ScrollTrigger.refresh();
+      requestScrollTriggerRefresh();
     });
   }
 };
@@ -1028,6 +1136,7 @@ export const initMCChalk = () => {
       });
 
       initSequences();
+      cullOffscreenChalk(wrappers);
 
       const instances = [...chalkInstances.values()];
       const generatedElements = instances.reduce(
@@ -1057,6 +1166,16 @@ export const initMCChalk = () => {
           return first?.get?.(key);
         },
         set(key: string, value: unknown) {
+          if (key === 'enabled') {
+            setChalkEnabled(Boolean(value));
+            return;
+          }
+
+          if (key === 'bendEnabled') {
+            setChalkBendEnabled(Boolean(value));
+            return;
+          }
+
           (ensureMC().chalk || []).forEach((instance) => instance.set?.(key, value));
         },
       };
@@ -1081,6 +1200,20 @@ export const initMCChalk = () => {
           },
         ],
         controls: [
+          {
+            type: 'toggle',
+            key: 'enabled',
+            label: 'Chalk Enable',
+            description:
+              'Shows generated Chalk SVG output; disabled restores the original icon artwork.',
+          },
+          {
+            type: 'toggle',
+            key: 'bendEnabled',
+            label: 'Bend Enable',
+            description:
+              'Applies the SVG turbulence and displacement filter to Chalk or the original SVG.',
+          },
           {
             type: 'range',
             key: 'bend',

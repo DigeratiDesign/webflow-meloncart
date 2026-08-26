@@ -1,5 +1,5 @@
 import { waitForFonts } from '../../digerati/core/fonts';
-import { gsap, ScrollTrigger, SplitText } from '../../digerati/core/gsap';
+import { gsap, requestScrollTriggerRefresh, SplitText } from '../../digerati/core/gsap';
 import { createLogger, isMCDebugEnabled } from '../../digerati/core/logger';
 import type { MCController, MCDebugSchema, MCNamespace } from '../../digerati/core/types';
 
@@ -693,7 +693,7 @@ class MCHeroSequence implements MCController {
     timeline.totalTime(0, true);
 
     this.initialising = false;
-    ScrollTrigger.refresh();
+    requestScrollTriggerRefresh();
     window.MC?.debug?.refresh();
     logger.debug('Sequence timeline built', {
       sequence: this.index + 1,

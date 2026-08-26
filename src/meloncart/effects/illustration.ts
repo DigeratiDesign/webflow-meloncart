@@ -2,6 +2,7 @@ import {
   getScrollTriggerDebug,
   gsap,
   onScrollTriggerDebugChange,
+  requestScrollTriggerRefresh,
   ScrollTrigger,
 } from '../../digerati/core/gsap';
 import { createLogger } from '../../digerati/core/logger';
@@ -662,9 +663,7 @@ const createSequenceController = (section: HTMLElement, sectionIndex: number) =>
       buildAnimated();
     }
 
-    requestAnimationFrame(() => {
-      ScrollTrigger.refresh();
-    });
+    requestScrollTriggerRefresh();
   };
 
   const controller: IllustrationSequenceController = {
@@ -830,9 +829,7 @@ export const initMCIllustration = () => {
   const init = () => {
     initIllustrationSequences();
 
-    requestAnimationFrame(() => {
-      ScrollTrigger.refresh();
-    });
+    requestScrollTriggerRefresh();
   };
 
   if (document.readyState === 'loading') {
