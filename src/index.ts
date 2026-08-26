@@ -9,6 +9,7 @@ import {
   claimMCHeroSequenceOwnership,
   initMCHeroSequence,
 } from './meloncart/effects/hero-sequence';
+import { initMCHoverIntent } from './meloncart/effects/hover-intent';
 import { initMCIllustration } from './meloncart/effects/illustration';
 import { initMCImageReveal } from './meloncart/effects/image-reveal';
 import { initMCParallax } from './meloncart/effects/parallax';
@@ -28,6 +29,7 @@ claimMCHeroSequenceOwnership();
 initMCColourReveal();
 initMCDepth();
 initMCFooterLinkSweep();
+initMCHoverIntent();
 initMCIllustration();
 initMCImageReveal();
 initMCMaxWidth();
