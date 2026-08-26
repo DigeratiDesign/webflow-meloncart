@@ -1,5 +1,5 @@
 import * as esbuild from 'esbuild';
-import { readdirSync } from 'fs';
+import { existsSync, readdirSync } from 'fs';
 import { join, sep } from 'path';
 
 // Config output
@@ -12,9 +12,11 @@ const ENTRY_POINTS = ['src/index.ts'];
 // Config dev serving
 const LIVE_RELOAD = !PRODUCTION;
 const SERVE_PORT = 3000;
-const SERVE_ORIGIN = `https://localhost:${SERVE_PORT}`;
 const SERVE_KEY = '.cert/localhost-key.pem';
 const SERVE_CERT = '.cert/localhost.pem';
+const HAS_LOCAL_CERTS = existsSync(SERVE_KEY) && existsSync(SERVE_CERT);
+const SERVE_PROTOCOL = HAS_LOCAL_CERTS ? 'https' : 'http';
+const SERVE_ORIGIN = `${SERVE_PROTOCOL}://localhost:${SERVE_PORT}`;
 
 // Create context
 const context = await esbuild.context({
@@ -40,14 +42,18 @@ if (PRODUCTION) {
 else {
   await context.watch();
 
-  await context
-    .serve({
-      servedir: BUILD_DIRECTORY,
-      port: SERVE_PORT,
-      keyfile: SERVE_KEY,
-      certfile: SERVE_CERT,
-    })
-    .then(logServedFiles);
+  const serveOptions = {
+    servedir: BUILD_DIRECTORY,
+    port: SERVE_PORT,
+    ...(HAS_LOCAL_CERTS
+      ? {
+          keyfile: SERVE_KEY,
+          certfile: SERVE_CERT,
+        }
+      : {}),
+  };
+
+  await context.serve(serveOptions).then(logServedFiles);
 }
 
 /**

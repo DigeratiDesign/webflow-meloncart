@@ -30,6 +30,7 @@ type BuildTimelineOptions = {
   attachScrollTrigger: boolean;
   paused: boolean;
   playImmediately: boolean;
+  onTimelineRebuilt?: (timeline: GSAPTimeline) => void;
 };
 
 type MCColourRevealInstance = MCColourReveal;
@@ -248,6 +249,7 @@ class MCColourReveal {
     attachScrollTrigger,
     paused,
     playImmediately,
+    onTimelineRebuilt,
   }: BuildTimelineOptions): Promise<TimelineBuildResult> {
     if (this.initialising) {
       logger.debug('Build already in progress', { element: this.component });
@@ -287,9 +289,7 @@ class MCColourReveal {
     await new Promise<void>((resolve) => {
       this.split = SplitText.create(this.component, {
         type: 'lines',
-        // The hero owns this timeline and intentionally avoids resize rebuilds after playback.
-        // A later auto-split would replace its attached child timeline with an unplayed one.
-        autoSplit: !this.parentOwned,
+        autoSplit: true,
         mask: 'lines',
         linesClass: 'line',
         onSplit: (self) => {
@@ -334,6 +334,7 @@ class MCColourReveal {
           );
 
           this.timeline = timeline;
+          onTimelineRebuilt?.(timeline);
           resolve();
 
           if (playImmediately) {
@@ -360,11 +361,14 @@ class MCColourReveal {
    * Creates a paused colour reveal timeline without its standalone ScrollTrigger.
    * A parent GSAP timeline can add and own this returned animation.
    */
-  async createTimeline(): Promise<TimelineBuildResult> {
+  async createTimeline({
+    onTimelineRebuilt,
+  }: Pick<BuildTimelineOptions, 'onTimelineRebuilt'> = {}): Promise<TimelineBuildResult> {
     return this.buildAnimated({
       attachScrollTrigger: false,
       paused: true,
       playImmediately: false,
+      onTimelineRebuilt,
     });
   }
 

@@ -1,4 +1,3 @@
-import { waitForFonts } from '../../digerati/core/fonts';
 import { gsap, requestScrollTriggerRefresh, SplitText } from '../../digerati/core/gsap';
 import { createLogger, isMCDebugEnabled } from '../../digerati/core/logger';
 import type { MCController, MCDebugSchema, MCNamespace } from '../../digerati/core/types';
@@ -33,7 +32,7 @@ type MCDepthController = MCController & {
 
 type MCColourRevealController = MCController & {
   component: HTMLElement;
-  createTimeline: () => Promise<{
+  createTimeline: (options?: { onTimelineRebuilt?: (timeline: GSAPTimeline) => void }) => Promise<{
     timeline: GSAPTimeline | null;
     lastLineStart: number;
     lastLineDuration: number;
@@ -493,12 +492,22 @@ class MCHeroSequence implements MCController {
       effectLoaded: depth?.effectLoaded,
       ready: depth?.ready,
     });
+    const timeline = gsap.timeline({ paused: true });
+    this.timeline = timeline;
     let headingTimeline: GSAPTimeline | null | undefined;
     let headingLastLineStart = 0;
     let headingLastLineDuration = 0;
 
     try {
-      const heading = await colourReveal?.createTimeline();
+      const heading = await colourReveal?.createTimeline({
+        onTimelineRebuilt: (rebuiltTimeline) => {
+          timeline.add(
+            rebuiltTimeline as unknown as gsap.core.Animation,
+            this.settings.headingStart
+          );
+          rebuiltTimeline.paused(false);
+        },
+      });
       headingTimeline = heading?.timeline;
       headingLastLineStart = heading?.lastLineStart || 0;
       headingLastLineDuration = heading?.lastLineDuration || 0;
@@ -521,28 +530,6 @@ class MCHeroSequence implements MCController {
       return;
     }
 
-    if (body) {
-      try {
-        await waitForFonts();
-        this.bodySplit = SplitText.create(body, { type: 'lines', mask: 'lines' });
-        logger.debug('Body lines prepared', {
-          sequence: this.index + 1,
-          lines: this.bodySplit.lines.length,
-        });
-      } catch (error) {
-        // A non-text body should not prevent later hero elements from animating.
-        this.bodySplit = null;
-        logger.error('Body line split failed; using the body fade fallback.', {
-          sequence: this.index + 1,
-          error,
-        });
-      }
-    }
-
-    const bodyLines = this.bodySplit?.lines || [];
-    const timeline = gsap.timeline({ paused: true });
-    this.timeline = timeline;
-
     if (eyebrow) {
       timeline.fromTo(
         eyebrow,
@@ -553,9 +540,6 @@ class MCHeroSequence implements MCController {
     }
 
     if (headingTimeline && colourReveal) {
-      timeline.add(headingTimeline as unknown as gsap.core.Animation, this.settings.headingStart);
-      // A paused child ignores its parent's playhead until it is resumed after attachment.
-      headingTimeline.paused(false);
       timeline.set(colourReveal.component, { autoAlpha: 1 }, this.settings.headingStart);
     }
 
@@ -605,33 +589,60 @@ class MCHeroSequence implements MCController {
         : this.settings.headingStart + 0.1
     );
 
-    if (bodyLines.length) {
-      timeline.set(body, { autoAlpha: 1 }, bodyPosition);
-      timeline.fromTo(
-        bodyLines,
-        { autoAlpha: 0, y: 12 },
-        {
-          autoAlpha: 1,
-          y: 0,
-          duration: this.settings.bodyDuration,
-          stagger: this.settings.bodyStagger,
-          ease: 'power1.out',
-        },
-        bodyPosition
-      );
-    } else if (body) {
-      timeline.fromTo(
-        body,
-        { autoAlpha: 0, y: 12 },
-        { autoAlpha: 1, y: 0, duration: this.settings.bodyDuration, ease: 'power1.out' },
-        bodyPosition
-      );
+    let bodyLineCount = 0;
+
+    if (body) {
+      try {
+        this.bodySplit = SplitText.create(body, {
+          type: 'lines',
+          mask: 'lines',
+          autoSplit: true,
+          onSplit: (split) => {
+            bodyLineCount = split.lines.length;
+            const bodyTimeline = gsap.timeline();
+
+            bodyTimeline.set(body, { autoAlpha: 1 });
+            bodyTimeline.fromTo(
+              split.lines,
+              { autoAlpha: 0, y: 12 },
+              {
+                autoAlpha: 1,
+                y: 0,
+                duration: this.settings.bodyDuration,
+                stagger: this.settings.bodyStagger,
+                ease: 'power1.out',
+              }
+            );
+            timeline.add(bodyTimeline, bodyPosition);
+
+            logger.debug('Body lines prepared', {
+              sequence: this.index + 1,
+              lines: bodyLineCount,
+            });
+
+            return bodyTimeline;
+          },
+        });
+      } catch (error) {
+        // A non-text body should not prevent later hero elements from animating.
+        this.bodySplit = null;
+        timeline.fromTo(
+          body,
+          { autoAlpha: 0, y: 12 },
+          { autoAlpha: 1, y: 0, duration: this.settings.bodyDuration, ease: 'power1.out' },
+          bodyPosition
+        );
+        logger.error('Body line split failed; using the body fade fallback.', {
+          sequence: this.index + 1,
+          error,
+        });
+      }
     }
 
     logger.debug('Hero content animation scheduled', {
       sequence: this.index + 1,
       body: Boolean(body),
-      bodyLines: bodyLines.length,
+      bodyLines: bodyLineCount,
       bodyPosition,
       cta: Boolean(cta),
     });
@@ -640,7 +651,7 @@ class MCHeroSequence implements MCController {
       const bodyEnd =
         bodyPosition +
         this.settings.bodyDuration +
-        Math.max(0, bodyLines.length - 1) * this.settings.bodyStagger;
+        Math.max(0, bodyLineCount - 1) * this.settings.bodyStagger;
       const cardsPosition = this.resolveCue('cardsStart', bodyEnd + 0.2);
 
       timeline.fromTo(
@@ -682,9 +693,7 @@ class MCHeroSequence implements MCController {
       [eyebrow, colourReveal?.component, body, cta, footnote, image, ...cards].filter(Boolean),
       { autoAlpha: 0 }
     );
-    if (bodyLines.length) {
-      gsap.set(bodyLines, { autoAlpha: 0, y: 12 });
-    } else if (body) {
+    if (!bodyLineCount && body) {
       gsap.set(body, { autoAlpha: 0, y: 12 });
     }
     if (cards.length) {

@@ -1,6 +1,7 @@
 import { initMCDebug } from './digerati/core/debug';
 import { initMCMotion } from './digerati/core/motion';
 import { initForm } from './digerati/form/form';
+import { initMCBurger } from './meloncart/effects/burger';
 import { initMCChalk } from './meloncart/effects/chalk';
 import { initMCColourReveal } from './meloncart/effects/colour-reveal';
 import { initMCDepth } from './meloncart/effects/depth';
@@ -24,6 +25,7 @@ import { initTheme } from './meloncart/theme';
 initMCMotion();
 initMCDebug();
 initMCPreloader();
+initMCBurger();
 initMCChalk();
 claimMCHeroSequenceOwnership();
 initMCColourReveal();
