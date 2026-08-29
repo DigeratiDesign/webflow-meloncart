@@ -29,6 +29,10 @@ class MCPreloader implements MCPreloaderAPI {
   dismissing = false;
   heroPlayback: (() => void) | null = null;
   fallbackTimer: number | null = null;
+  minimumDisplayTimer: number | null = null;
+  minimumDisplayElapsed = false;
+  presentationReady = false;
+  dismissalReason: string | null = null;
   startedAt = 0;
 
   constructor(element: HTMLElement) {
@@ -46,14 +50,15 @@ class MCPreloader implements MCPreloaderAPI {
     this.element.setAttribute('aria-busy', 'true');
 
     this.fallbackTimer = window.setTimeout(() => {
-      void this.dismiss('fallback timeout');
+      this.dismiss('fallback timeout', true);
     }, FALLBACK_TIMEOUT);
 
     if (!document.querySelector(HERO_SELECTOR)) {
-      requestAnimationFrame(() => void this.dismiss('no Hero sequence'));
+      this.dismiss('no Hero sequence');
     }
 
     logger.debug('Initialised', { element: this.element });
+    this.waitForPresentation();
   }
 
   heroReady(play?: () => void) {
@@ -68,8 +73,46 @@ class MCPreloader implements MCPreloaderAPI {
     }
 
     if (!this.dismissing) {
-      void this.dismiss('Hero sequence ready');
+      this.dismiss('Hero sequence ready');
     }
+  }
+
+  private waitForPresentation() {
+    // rAF runs before a repaint; the second callback runs after a rendering opportunity.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (this.dismissed) return;
+
+        this.presentationReady = true;
+        logger.debug('Visible', { element: this.element });
+        this.completeWhenReady();
+      });
+    });
+  }
+
+  private clearTimers() {
+    if (this.fallbackTimer !== null) {
+      window.clearTimeout(this.fallbackTimer);
+      this.fallbackTimer = null;
+    }
+
+    if (this.minimumDisplayTimer !== null) {
+      window.clearTimeout(this.minimumDisplayTimer);
+      this.minimumDisplayTimer = null;
+    }
+  }
+
+  private completeWhenReady() {
+    if (
+      this.dismissed ||
+      !this.dismissing ||
+      !this.presentationReady ||
+      !this.minimumDisplayElapsed
+    ) {
+      return;
+    }
+
+    this.completeDismissal(this.dismissalReason || 'ready');
   }
 
   private completeDismissal(reason: string) {
@@ -77,6 +120,7 @@ class MCPreloader implements MCPreloaderAPI {
 
     this.dismissed = true;
     this.dismissing = false;
+    this.clearTimers();
     this.element.setAttribute('aria-hidden', 'true');
     this.element.removeAttribute('aria-busy');
     gsap.set(this.element, { autoAlpha: 0, display: 'none', pointerEvents: 'none' });
@@ -86,27 +130,43 @@ class MCPreloader implements MCPreloaderAPI {
     this.heroPlayback = null;
     playback?.();
 
-    logger.debug('Dismissed', { reason });
+    logger.debug('Exit complete', { reason });
   }
 
-  private dismiss(reason: string) {
-    if (this.dismissed || this.dismissing) return;
+  private dismiss(reason: string, force = false) {
+    if (this.dismissed) return;
 
-    this.dismissing = true;
-    if (this.fallbackTimer !== null) {
-      window.clearTimeout(this.fallbackTimer);
-      this.fallbackTimer = null;
-    }
-
-    const wait = Math.max(0, MINIMUM_DISPLAY_TIME - (performance.now() - this.startedAt));
-    logger.debug('Dismissing', { reason, wait });
-
-    if (wait) {
-      window.setTimeout(() => this.completeDismissal(reason), wait);
+    if (this.dismissing) {
+      if (force) {
+        logger.warn('Fallback forcing exit before presentation readiness', { reason });
+        this.completeDismissal(reason);
+      }
       return;
     }
 
-    this.completeDismissal(reason);
+    this.dismissing = true;
+    this.dismissalReason = reason;
+
+    if (force) {
+      logger.warn('Fallback forcing exit before presentation readiness', { reason });
+      this.completeDismissal(reason);
+      return;
+    }
+
+    const wait = Math.max(0, MINIMUM_DISPLAY_TIME - (performance.now() - this.startedAt));
+    logger.debug('Ready to exit', { reason, wait });
+
+    if (wait) {
+      this.minimumDisplayTimer = window.setTimeout(() => {
+        this.minimumDisplayTimer = null;
+        this.minimumDisplayElapsed = true;
+        this.completeWhenReady();
+      }, wait);
+      return;
+    }
+
+    this.minimumDisplayElapsed = true;
+    this.completeWhenReady();
   }
 }
 
