@@ -5,6 +5,7 @@ import type { MCNamespace } from '../digerati/core/types';
 const SELECTOR = '[mc-preloader]';
 const HERO_SELECTOR = '[mc-hero-sequence]';
 const ROOT_ATTRIBUTE = 'data-mc-preloader-active';
+const DISMISSED_ROOT_ATTRIBUTE = 'data-mc-preloader-dismissed';
 const FALLBACK_TIMEOUT = 1800;
 const MINIMUM_DISPLAY_TIME = 500;
 const logger = createLogger('melon', 'preloader', { debug: isMCDebugEnabled });
@@ -46,6 +47,7 @@ class MCPreloader implements MCPreloaderAPI {
   init() {
     this.startedAt = performance.now();
     document.documentElement.setAttribute(ROOT_ATTRIBUTE, 'true');
+    document.documentElement.removeAttribute(DISMISSED_ROOT_ATTRIBUTE);
     this.element.removeAttribute('aria-hidden');
     this.element.setAttribute('aria-busy', 'true');
     // Webflow's retired page-load interaction can leave these inline states behind.
@@ -128,6 +130,7 @@ class MCPreloader implements MCPreloaderAPI {
     this.clearTimers();
     this.element.setAttribute('aria-hidden', 'true');
     this.element.removeAttribute('aria-busy');
+    document.documentElement.setAttribute(DISMISSED_ROOT_ATTRIBUTE, 'true');
     gsap.set(this.element, { autoAlpha: 0, display: 'none', pointerEvents: 'none' });
     document.documentElement.removeAttribute(ROOT_ATTRIBUTE);
 
