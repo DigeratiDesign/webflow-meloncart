@@ -48,6 +48,11 @@ class MCPreloader implements MCPreloaderAPI {
     document.documentElement.setAttribute(ROOT_ATTRIBUTE, 'true');
     this.element.removeAttribute('aria-hidden');
     this.element.setAttribute('aria-busy', 'true');
+    // Webflow's retired page-load interaction can leave these inline states behind.
+    this.element.style.display = 'block';
+    this.element.style.opacity = '1';
+    this.element.style.visibility = 'visible';
+    this.element.style.pointerEvents = 'auto';
 
     this.fallbackTimer = window.setTimeout(() => {
       this.dismiss('fallback timeout', true);
