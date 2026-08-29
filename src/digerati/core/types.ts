@@ -21,6 +21,11 @@ export type MCController = {
   settings?: Record<string, unknown>;
 };
 
+export type MCEffectLifecycle = {
+  enabled: () => boolean;
+  setEnabled: (enabled: boolean) => void | Promise<void>;
+};
+
 export type MCRangeControl = {
   type: 'range';
   key: string;
@@ -61,6 +66,7 @@ export type MCButtonControl = {
 export type MCDebugSchema = {
   id: string;
   label?: string;
+  showInPanel?: boolean;
   order?: number;
   instances?: () => MCController[];
   orderElement?: () => Element | null;
@@ -72,6 +78,7 @@ export type MCDebugSchema = {
     | ((instance: MCController, index: number, total: number) => string);
   get?: (instance: MCController, key: string) => unknown;
   set?: (instance: MCController, key: string, value: unknown) => void;
+  effect?: MCEffectLifecycle;
 };
 
 export type MCDebugAPI = {
@@ -82,6 +89,7 @@ export type MCDebugAPI = {
   toggle: () => void;
   open: () => void;
   close: () => void;
+  isEffectEnabled: (id: string) => boolean;
 };
 
 export type ColorThemeValues = Record<string, string>;

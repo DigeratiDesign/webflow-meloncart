@@ -13,6 +13,7 @@ const DEFAULT_START = 'top 75%';
 const DEFAULT_STAGGER = 0.25;
 const EASE = 'power3.out';
 const logger = createLogger('melon', 'illustration');
+let effectEnabled = true;
 
 type SequenceSettings = {
   duration: number;
@@ -760,6 +761,16 @@ const initIllustrationSequences = () => {
   registerDebugSchema({
     id: 'illustration-sequences',
     label: 'Illustration Sequence',
+    effect: {
+      enabled: () => effectEnabled,
+      setEnabled(enabled) {
+        effectEnabled = enabled;
+        sequenceControllers.forEach((controller) => {
+          if (!enabled) controller.showFinal();
+          else controller.rebuild();
+        });
+      },
+    },
     instances: () => ensureMC().illustrationSequences || [],
     instanceLabel: 'Sequence',
     controls: [
@@ -802,6 +813,10 @@ const initIllustrationSequences = () => {
 
 const rebuildAllSequences = () => {
   sequenceControllers.forEach((controller) => {
+    if (!effectEnabled) {
+      controller.showFinal();
+      return;
+    }
     controller.rebuild();
   });
 };

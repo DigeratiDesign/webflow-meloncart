@@ -96,11 +96,12 @@ const CSS = `
     .mc-debug-control input[type=range]::-moz-range-track{height:4px;border-radius:999px;background:rgba(255,255,255,.14)}
     .mc-debug-control input[type=range]::-moz-range-progress{height:4px;border-radius:999px;background:var(--mc-debug-accent)}
     .mc-debug-control input[type=range]::-moz-range-thumb{width:14px;height:14px;border:2px solid #2a2722;border-radius:50%;background:var(--mc-debug-accent)}
-    .mc-debug-control input[type=checkbox]{appearance:none;position:relative;display:block;width:30px;height:16px;margin:0;border:1px solid rgba(255,255,255,.28);border-radius:999px;background:rgba(255,255,255,.08);cursor:pointer;transition:background .16s ease,border-color .16s ease}
-    .mc-debug-control input[type=checkbox]::after{position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.55);content:'';transition:transform .16s ease,background .16s ease}
-    .mc-debug-control input[type=checkbox]:checked{border-color:var(--mc-debug-accent);background:var(--mc-debug-accent)}
-    .mc-debug-control input[type=checkbox]:checked::after{background:#2a2722;transform:translateX(14px)}
-    .mc-debug-control input[type=checkbox]:focus-visible{outline:2px solid var(--mc-debug-accent);outline-offset:2px}
+    .mc-debug-control input[type=checkbox],.mc-debug-effect-toggle input[type=checkbox]{appearance:none;position:relative;display:block;width:30px;height:16px;margin:0;border:1px solid rgba(255,255,255,.28);border-radius:999px;background:rgba(255,255,255,.08);cursor:pointer;transition:background .16s ease,border-color .16s ease}
+    .mc-debug-control input[type=checkbox]::after,.mc-debug-effect-toggle input[type=checkbox]::after{position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.55);content:'';transition:transform .16s ease,background .16s ease}
+    .mc-debug-control input[type=checkbox]:checked,.mc-debug-effect-toggle input[type=checkbox]:checked{border-color:var(--mc-debug-accent);background:var(--mc-debug-accent)}
+    .mc-debug-control input[type=checkbox]:checked::after,.mc-debug-effect-toggle input[type=checkbox]:checked::after{background:#2a2722;transform:translateX(14px)}
+    .mc-debug-control input[type=checkbox]:disabled{cursor:not-allowed;opacity:.45}
+    .mc-debug-control input[type=checkbox]:focus-visible,.mc-debug-effect-toggle input[type=checkbox]:focus-visible{outline:2px solid var(--mc-debug-accent);outline-offset:2px}
     .mc-debug-text{appearance:none;display:block;width:100%;padding:8px 10px;border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(255,255,255,.04);color:#fff;font:500 11px/1.3 'Poppins',Arial,Helvetica,sans-serif}
     .mc-debug-text::placeholder{color:rgba(255,255,255,.35)}
     .mc-debug-text:hover{border-color:rgba(255,255,255,.22)}
@@ -230,10 +231,12 @@ export const initMCDebug = () => {
     exportedAt?: string;
     motion?: MotionMode;
     scrollTriggerDebug?: boolean;
+    effectEnabled?: Record<string, boolean>;
     effects?: Record<string, Array<Record<string, unknown>>>;
   };
   let storedSettings: DebugSettings | null = null;
   let panelContentCollapsed = false;
+  const effectEnabled = new Map<string, boolean>();
 
   try {
     const savedState = JSON.parse(
@@ -303,28 +306,22 @@ export const initMCDebug = () => {
 
   const orderedSchemas = () =>
     [...schemas.values()].sort((a, b) => {
-      if (a.order !== b.order) {
-        return (a.order ?? 0) - (b.order ?? 0);
-      }
-
       const aElement = a.orderElement?.();
       const bElement = b.orderElement?.();
 
-      if (!aElement || !bElement || aElement === bElement) {
-        return 0;
+      if (aElement && bElement && aElement !== bElement) {
+        const position = aElement.compareDocumentPosition(bElement);
+
+        if (position & Node.DOCUMENT_POSITION_FOLLOWING) {
+          return -1;
+        }
+
+        if (position & Node.DOCUMENT_POSITION_PRECEDING) {
+          return 1;
+        }
       }
 
-      const position = aElement.compareDocumentPosition(bElement);
-
-      if (position & Node.DOCUMENT_POSITION_FOLLOWING) {
-        return -1;
-      }
-
-      if (position & Node.DOCUMENT_POSITION_PRECEDING) {
-        return 1;
-      }
-
-      return 0;
+      return (a.order ?? 0) - (b.order ?? 0);
     });
 
   const setAccentColour = (hex: string) => {
@@ -455,8 +452,28 @@ export const initMCDebug = () => {
       exportedAt: new Date().toISOString(),
       motion: motion.mode,
       scrollTriggerDebug: getScrollTriggerDebug(),
+      effectEnabled: Object.fromEntries(
+        orderedSchemas()
+          .filter((schema) => schema.effect)
+          .map((schema) => [schema.id, effectEnabled.get(schema.id) ?? schema.effect!.enabled()])
+      ),
       effects,
     };
+  };
+
+  const isEffectEnabled = (id: string) => effectEnabled.get(id) ?? true;
+
+  const setEffectEnabled = (schema: MCDebugSchema, enabled: boolean) => {
+    if (!schema.effect || isEffectEnabled(schema.id) === enabled) {
+      return;
+    }
+
+    effectEnabled.set(schema.id, enabled);
+    void Promise.resolve(schema.effect.setEnabled(enabled)).finally(() => {
+      logger.info(`${schema.label || schema.id} ${enabled ? 'enabled' : 'disabled'}`);
+      persistSettings();
+      if (isOpen) render();
+    });
   };
 
   const saveStoredSettings = () => {
@@ -518,6 +535,19 @@ export const initMCDebug = () => {
     hydratedSchemas.add(schema.id);
   };
 
+  const hydrateEffect = (schema: MCDebugSchema) => {
+    if (!schema.effect || effectEnabled.has(schema.id)) {
+      return;
+    }
+
+    const enabled = storedSettings?.effectEnabled?.[schema.id];
+    effectEnabled.set(schema.id, typeof enabled === 'boolean' ? enabled : schema.effect.enabled());
+
+    if (enabled === false) {
+      void schema.effect.setEnabled(false);
+    }
+  };
+
   const hydrateAvailableSettings = () => {
     if (!storedSettings) {
       return;
@@ -527,7 +557,10 @@ export const initMCDebug = () => {
       applyGlobalSettings(storedSettings);
       globalSettingsHydrated = true;
     }
-    orderedSchemas().forEach(hydrateSchema);
+    orderedSchemas().forEach((schema) => {
+      hydrateEffect(schema);
+      hydrateSchema(schema);
+    });
   };
 
   const exportSettings = () => {
@@ -964,8 +997,7 @@ export const initMCDebug = () => {
         (mode, button, control) => {
           motion.setMode(mode);
           persistSettings();
-          control.querySelectorAll('button').forEach((el) => el.classList.remove('is-active'));
-          button.classList.add('is-active');
+          render();
         }
       )
     );
@@ -996,6 +1028,46 @@ export const initMCDebug = () => {
 
     grid.append(motionBlock, debugBlock);
     wrap.appendChild(grid);
+    return wrap;
+  };
+
+  const effectsControl = () => {
+    const effectSchemas = orderedSchemas().filter((schema) => {
+      if (!schema.effect) return false;
+      return (schema.instances?.() || []).filter(Boolean).length > 0;
+    });
+    if (!effectSchemas.length) return null;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'mc-debug-global';
+
+    const title = document.createElement('div');
+    title.className = 'mc-debug-global-title';
+    title.textContent = 'Effects';
+    wrap.appendChild(title);
+
+    effectSchemas.forEach((schema) => {
+      const control = document.createElement('label');
+      control.className = 'mc-debug-control';
+      const row = document.createElement('div');
+      row.className = 'mc-debug-row';
+      const label = document.createElement('span');
+      label.className = 'mc-debug-label';
+      label.textContent = schema.label || schema.id;
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.checked = isEffectEnabled(schema.id);
+      input.disabled = motion.reduced;
+      input.setAttribute('aria-label', `${schema.label || schema.id} enabled`);
+      if (motion.reduced) {
+        input.title = 'Effect controls are unavailable while Reduce Motion is on.';
+      }
+      input.addEventListener('change', () => setEffectEnabled(schema, input.checked));
+      row.append(label, input);
+      control.appendChild(row);
+      wrap.appendChild(control);
+    });
+
     return wrap;
   };
 
@@ -1046,14 +1118,17 @@ export const initMCDebug = () => {
     content.hidden = panelContentCollapsed;
     content.innerHTML = '';
     content.appendChild(motionControl());
+    const effects = effectsControl();
+    if (effects) content.appendChild(effects);
     let rendered = false;
     let sectionCount = 0;
     orderedSchemas().forEach((schema) => {
+      if (schema.showInPanel === false) return;
+
       const instances =
         typeof schema.instances === 'function' ? (schema.instances() || []).filter(Boolean) : [];
 
-      const hasStats = Array.isArray(schema.stats) && schema.stats.length;
-      if (!instances.length && !hasStats) return;
+      if (!instances.length) return;
 
       const group = document.createElement('div');
       group.className = 'mc-debug-group';
@@ -1255,6 +1330,10 @@ export const initMCDebug = () => {
     toggle();
   });
 
+  window.addEventListener('mcMotionPreferenceChange', () => {
+    if (isOpen) render();
+  });
+
   const queued = Array.isArray(mc.__debugQueue) ? mc.__debugQueue.splice(0) : [];
 
   mc.debug = {
@@ -1265,6 +1344,7 @@ export const initMCDebug = () => {
     toggle,
     open,
     close,
+    isEffectEnabled,
   };
 
   queued.forEach(register);

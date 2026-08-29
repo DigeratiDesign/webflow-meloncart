@@ -5,6 +5,8 @@ import type { MCController, MCDebugSchema, MCNamespace } from '../../digerati/co
 const SEQUENCE_SELECTOR = '[mc-hero-sequence]';
 const OWNER_VALUE = 'hero-sequence';
 const logger = createLogger('melon', 'hero-sequence', { debug: isMCDebugEnabled });
+let effectEnabled = true;
+let effectListenerRegistered = false;
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 const HERO_SETTING_ATTRIBUTES = {
   eyebrowStart: 'mc-hero-eyebrow-start',
@@ -25,6 +27,8 @@ const HERO_SETTING_ATTRIBUTES = {
 
 type MCDepthController = MCController & {
   image: HTMLImageElement;
+  effectLoaded: boolean;
+  ready: boolean;
   prepare: () => Promise<void>;
   resetForParent: () => void;
   showStaticImage: () => void;
@@ -109,6 +113,7 @@ const ensureMC = (): MCHeroNamespace => {
 };
 
 const reducedMotionEnabled = () => window.MC?.motion?.reduced ?? false;
+const isEffectEnabled = (id: string) => window.MC?.debug?.isEffectEnabled(id) ?? true;
 
 const numberAttribute = (element: HTMLElement, name: string, fallback: number) => {
   const value = Number.parseFloat(element.getAttribute(name) ?? '');
@@ -326,14 +331,16 @@ class MCHeroSequence implements MCController {
     return candidate?.closest<HTMLElement>(SEQUENCE_SELECTOR) === this.element ? candidate : null;
   }
 
-  private get depth() {
+  private get depth(): MCDepthController | null {
+    if (!isEffectEnabled('depth')) return null;
     return (
       (this.child<HTMLImageElement>('img[mc-depth-reveal]') as MCDepthElement | null)
         ?.__mcDepthReveal || null
     );
   }
 
-  private get colourReveal() {
+  private get colourReveal(): MCColourRevealController | null {
+    if (!isEffectEnabled('colourReveal')) return null;
     return (
       (this.child<HTMLElement>('[mc-colour-reveal]') as MCColourRevealElement | null)
         ?.__mcColourReveal || null
@@ -404,7 +411,7 @@ class MCHeroSequence implements MCController {
     });
   }
 
-  private showFinal() {
+  showFinal() {
     this.killTimeline();
     this.depth?.showStaticImage();
     this.colourReveal?.showFinal();
@@ -424,6 +431,19 @@ class MCHeroSequence implements MCController {
     ].filter(Boolean);
 
     gsap.set(finalElements, { autoAlpha: 1, clearProps: 'transform' });
+  }
+
+  releaseChildren() {
+    this.element
+      .querySelectorAll<HTMLElement>('[mc-animation-owner="hero-sequence"]')
+      .forEach((child) => child.removeAttribute('mc-animation-owner'));
+
+    void (this.child<HTMLImageElement>('img[mc-depth-reveal]') as MCDepthElement | null)
+      ?.__mcDepthReveal?.init();
+    void (this.child<HTMLElement>('[mc-colour-reveal]') as MCColourRevealElement | null)
+      ?.__mcColourReveal?.init();
+    (this.child<HTMLElement>('[mc-parallax="scene"]') as MCParallaxElement | null)
+      ?.__mcParallax?.init();
   }
 
   async rebuild(playImmediately = false) {
@@ -559,7 +579,7 @@ class MCHeroSequence implements MCController {
       this.settings.headingStart + headingLastLineStart
     );
 
-    timeline.call(() => void depth?.replay(), [], visualPosition);
+    timeline.call(() => void depth?.replay?.(), [], visualPosition);
     timeline.call(() => reward?.play(), [], visualPosition);
     timeline.call(
       () => reward?.startScrollParallax(),
@@ -760,6 +780,10 @@ class MCHeroSequence implements MCController {
   };
 
   async init() {
+    if (!effectEnabled) {
+      this.showFinal();
+      return;
+    }
     await this.rebuild(true);
   }
 }
@@ -775,6 +799,21 @@ export const initMCHeroSequence = () => {
     registerDebug({
       id: 'hero-sequences',
       label: 'Hero Sequence',
+      effect: {
+        enabled: () => effectEnabled,
+        setEnabled(enabled) {
+          effectEnabled = enabled;
+          (ensureMC().heroSequences || []).forEach((sequence) => {
+            if (!enabled) {
+              sequence.showFinal();
+              sequence.releaseChildren();
+            } else {
+              claimMCHeroSequenceOwnership();
+              void sequence.init();
+            }
+          });
+        },
+      },
       order: -1,
       instances: () => ensureMC().heroSequences || [],
       orderElement: () => ensureMC().heroSequences?.[0]?.element || null,
@@ -964,6 +1003,15 @@ export const initMCHeroSequence = () => {
 
     logger.info(`Initialised ${sequences.length} sequence(s).`);
   };
+
+  if (!effectListenerRegistered) {
+    effectListenerRegistered = true;
+    window.addEventListener('mcEffectEnabledChange', () => {
+      if (effectEnabled) {
+        ensureMC().heroSequences?.forEach((sequence) => void sequence.init());
+      }
+    });
+  }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initialise, { once: true });

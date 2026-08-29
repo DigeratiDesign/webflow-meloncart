@@ -263,10 +263,13 @@ export const initMCFooterLinkSweep = () => {
       id: 'footer-link-sweep',
       label: 'Footer Link Sweep',
       instances: () => {
-        const { footerLinkSweepController } = ensureMC();
+        const { footerLinkSweep, footerLinkSweepController } = ensureMC();
 
-        return footerLinkSweepController ? [footerLinkSweepController] : [];
+        return footerLinkSweepController && footerLinkSweep?.length
+          ? [footerLinkSweepController]
+          : [];
       },
+      orderElement: () => ensureMC().footerLinkSweep?.[0]?.element || null,
       instanceLabel: 'All Footer Links',
       stats: [{ label: 'Links', value: () => ensureMC().footerLinkSweep?.length || 0 }],
       controls: [

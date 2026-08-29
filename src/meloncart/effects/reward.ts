@@ -349,9 +349,9 @@ export const initMCReward = () => {
       id: 'reward',
       label: 'Reward',
       instances: () => {
-        const { rewardController } = ensureMC();
+        const { reward, rewardController } = ensureMC();
 
-        return rewardController ? [rewardController] : [];
+        return rewardController && reward?.length ? [rewardController] : [];
       },
       orderElement: () => ensureMC().reward?.[0]?.element || null,
       instanceLabel: 'All Reward Scenes',

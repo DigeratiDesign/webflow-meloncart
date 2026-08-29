@@ -18,6 +18,7 @@ const DEFAULTS = {
   duration: 2850,
 };
 const logger = createLogger('melon', 'depth', { debug: isMCDebugEnabled });
+let effectEnabled = true;
 
 declare global {
   interface HTMLImageElement {
@@ -289,6 +290,10 @@ class MCDepthReveal {
   }
 
   async init() {
+    if (!effectEnabled) {
+      this.showStaticImage();
+      return;
+    }
     if (motion().reduced) {
       this.showStaticImage();
       return;
@@ -303,7 +308,7 @@ class MCDepthReveal {
   }
 
   async loadEffect(startReveal = true) {
-    if (this.effectLoaded || this.loadingEffect || motion().reduced) return;
+    if (!effectEnabled || this.effectLoaded || this.loadingEffect || motion().reduced) return;
 
     logger.debug('Loading effect', { image: this.image, startReveal });
 
@@ -393,7 +398,41 @@ class MCDepthReveal {
     this.cancelScheduledFrames();
   }
 
+  disable() {
+    this.cancelScheduledFrames();
+    this.observer?.disconnect();
+    window.removeEventListener('resize', this.boundResize);
+    window.removeEventListener('pointermove', this.boundPointerMove);
+    this.showStaticImage();
+  }
+
+  async enable() {
+    if (!effectEnabled || motion().reduced) {
+      this.showStaticImage();
+      return;
+    }
+
+    if (!this.effectLoaded) {
+      await this.loadEffect(!this.parentOwned);
+      return;
+    }
+
+    this.createObserver();
+    window.addEventListener('resize', this.boundResize, { passive: true });
+    if (this.pointerTrackingEnabled) {
+      window.addEventListener('pointermove', this.boundPointerMove, { passive: true });
+    }
+    this.reducedStatic = false;
+    this.image.style.opacity = '0';
+    if (this.canvas) this.canvas.style.display = 'block';
+    if (!this.parentOwned) this.startReveal();
+  }
+
   async onMotionPreferenceChange() {
+    if (!effectEnabled) {
+      this.showStaticImage();
+      return;
+    }
     if (motion().reduced) {
       this.showStaticImage();
       return;
@@ -1448,6 +1487,17 @@ export const initMCDepth = () => {
     registerDebugSchema({
       id: 'depth',
       label: 'Depth',
+      effect: {
+        enabled: () => effectEnabled,
+        setEnabled(enabled) {
+          effectEnabled = enabled;
+          (ensureMC().depth || []).forEach((instance) => {
+            if (!enabled) instance.disable();
+            else void instance.enable();
+          });
+          window.dispatchEvent(new Event('mcEffectEnabledChange'));
+        },
+      },
       instances: () => ensureMC().depth || [],
       orderElement: () => ensureMC().depth?.[0]?.image || null,
       instanceLabel: 'Depth Hero',

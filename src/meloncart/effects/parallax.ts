@@ -11,6 +11,7 @@ const DEFAULT_DURATION = 0.8;
 const DEFAULT_INTRO_SCALE = 2.2;
 const DEFAULT_INTRO_DURATION = 1.2;
 const logger = createLogger('melon', 'parallax', { debug: isMCDebugEnabled });
+let effectEnabled = true;
 
 type MCParallaxNamespace = MCNamespace & {
   parallax?: MCParallaxScene[];
@@ -283,6 +284,10 @@ class MCParallaxScene {
   }
 
   init() {
+    if (!effectEnabled) {
+      this.showFinal();
+      return;
+    }
     this.prepare();
 
     if (!this.parentOwned) {
@@ -311,6 +316,17 @@ export const initMCParallax = () => {
     registerDebug({
       id: 'parallax',
       label: 'Parallax',
+      effect: {
+        enabled: () => effectEnabled,
+        setEnabled(enabled) {
+          effectEnabled = enabled;
+          (ensureMC().parallax || []).forEach((scene) => {
+            if (!enabled) scene.showFinal();
+            else scene.init();
+          });
+          window.dispatchEvent(new Event('mcEffectEnabledChange'));
+        },
+      },
       instances: () => ensureMC().parallax || [],
       orderElement: () => ensureMC().parallax?.[0]?.element || null,
       instanceLabel: 'Scene',

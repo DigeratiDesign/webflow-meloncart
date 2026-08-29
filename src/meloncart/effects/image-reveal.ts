@@ -1,11 +1,12 @@
 import { createLogger, isMCDebugEnabled } from '../../digerati/core/logger';
-import type { MCNamespace } from '../../digerati/core/types';
+import type { MCDebugSchema, MCNamespace } from '../../digerati/core/types';
 
 const IMAGE_SELECTOR =
   'img[loading="lazy"]:not([mc-image-reveal="off"]):not([mc-reward="shape"]), img[mc-image-reveal]:not([mc-image-reveal="off"]):not([mc-reward="shape"])';
 const BACKGROUND_SELECTOR = '[mc-image-reveal]:not(img):not([mc-image-reveal="off"])';
 const REVEAL_DURATION = 600;
 const logger = createLogger('melon', 'image-reveal', { debug: isMCDebugEnabled });
+let effectEnabled = true;
 
 type MCImageRevealInstance = MCImageReveal;
 type MCImageRevealNamespace = MCNamespace & { imageReveal?: MCImageRevealInstance[] };
@@ -21,6 +22,16 @@ const reducedMotionEnabled = () => window.MC?.motion?.reduced ?? false;
 const ensureMC = (): MCImageRevealNamespace => {
   window.MC ||= {};
   return window.MC as MCImageRevealNamespace;
+};
+
+const registerDebug = (schema: MCDebugSchema) => {
+  const mc = ensureMC();
+  if (mc.debug?.register) {
+    mc.debug.register(schema);
+    return;
+  }
+  mc.__debugQueue ||= [];
+  mc.__debugQueue.push(schema);
 };
 
 const getBackgroundImageUrl = (element: HTMLElement): string | null => {
@@ -196,6 +207,10 @@ class MCImageReveal {
   }
 
   init() {
+    if (!effectEnabled) {
+      this.showFinal();
+      return;
+    }
     if (reducedMotionEnabled()) {
       this.showFinal();
       return;
@@ -205,6 +220,15 @@ class MCImageReveal {
       return;
     }
     void this.initBackground();
+  }
+
+  restart() {
+    this.revealed = false;
+    this.init();
+  }
+
+  replay() {
+    this.restart();
   }
 }
 
@@ -228,6 +252,24 @@ export const initMCImageReveal = () => {
       ensureMC().imageReveal?.forEach((instance) => {
         if (reducedMotionEnabled()) instance.showFinal();
       });
+    });
+    registerDebug({
+      id: 'image-reveal',
+      label: 'Image Reveal',
+      showInPanel: false,
+      instances: () => ensureMC().imageReveal || [],
+      orderElement: () => ensureMC().imageReveal?.[0]?.element || null,
+      instanceLabel: 'Image',
+      effect: {
+        enabled: () => effectEnabled,
+        setEnabled(enabled) {
+          effectEnabled = enabled;
+          (ensureMC().imageReveal || []).forEach((instance) => {
+            if (!enabled) instance.showFinal();
+            else instance.restart();
+          });
+        },
+      },
     });
     logger.info(
       `Initialised ${initialised} image reveal(s): ${imageElements.length} image(s), ${backgroundElements.length} background(s).`

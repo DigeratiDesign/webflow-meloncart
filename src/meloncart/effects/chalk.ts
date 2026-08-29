@@ -31,6 +31,7 @@ const DEFAULTS = {
   debug: false,
 };
 const logger = createLogger('melon', 'chalk');
+let sequenceEffectEnabled = true;
 
 type ChalkStamp = {
   path: string;
@@ -957,7 +958,7 @@ const initSequence = (sequenceElement: HTMLElement) => {
       trigger = null;
     }
 
-    if (reduceMotionEnabled()) {
+    if (!sequenceEffectEnabled || reduceMotionEnabled()) {
       instances.forEach(showInstance);
       revealWrappers(instances);
 
@@ -1285,6 +1286,13 @@ export const initMCChalk = () => {
       registerDebugSchema({
         id: 'chalk-sequences',
         label: 'Chalk Sequence',
+        effect: {
+          enabled: () => sequenceEffectEnabled,
+          setEnabled(enabled) {
+            sequenceEffectEnabled = enabled;
+            sequenceControllers.forEach((controller) => controller.rebuild());
+          },
+        },
         instances: () => ensureMC().chalkSequences || [],
         instanceLabel: 'Sequence',
         controls: [

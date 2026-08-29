@@ -19,6 +19,7 @@ const DEFAULTS = {
   start: 'top bottom',
 };
 const logger = createLogger('melon', 'colour-reveal', { debug: isMCDebugEnabled });
+let effectEnabled = true;
 
 type SplitTextResult = InstanceType<typeof SplitText>;
 type TimelineBuildResult = {
@@ -387,6 +388,10 @@ class MCColourReveal {
   }
 
   async motionChanged() {
+    if (!effectEnabled) {
+      this.showFinal();
+      return;
+    }
     if (reducedMotionEnabled()) {
       this.showFinal();
 
@@ -417,6 +422,10 @@ class MCColourReveal {
   }
 
   async init() {
+    if (!effectEnabled) {
+      this.showFinal();
+      return;
+    }
     if (reducedMotionEnabled()) {
       this.showFinal();
 
@@ -451,6 +460,20 @@ export const initMCColourReveal = () => {
   registerDebug({
     id: 'colourReveal',
     label: 'Colour Reveal',
+    effect: {
+      enabled: () => effectEnabled,
+      setEnabled(enabled) {
+        effectEnabled = enabled;
+        (ensureMC().colourReveal || []).forEach((instance) => {
+          if (!enabled) {
+            instance.showFinal();
+          } else if (!instance.parentOwned) {
+            void instance.init();
+          }
+        });
+        window.dispatchEvent(new Event('mcEffectEnabledChange'));
+      },
+    },
     instances: () => ensureMC().colourReveal || [],
     orderElement: () => ensureMC().colourReveal?.[0]?.component || null,
     instanceLabel: (instance) =>
