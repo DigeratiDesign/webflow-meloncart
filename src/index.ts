@@ -1,6 +1,7 @@
 import { initMCDebug } from './digerati/core/debug';
 import { initMCMotion } from './digerati/core/motion';
 import { initForm } from './digerati/form/form';
+import { initMCBrokenGlitch } from './meloncart/effects/broken-glitch';
 import { initMCBurger } from './meloncart/effects/burger';
 import { initMCChalk } from './meloncart/effects/chalk';
 import { initMCColourReveal } from './meloncart/effects/colour-reveal';
@@ -26,6 +27,7 @@ initMCMotion();
 initMCDebug();
 initMCPreloader();
 initMCBurger();
+initMCBrokenGlitch();
 initMCChalk();
 claimMCHeroSequenceOwnership();
 initMCColourReveal();
