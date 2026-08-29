@@ -17,6 +17,7 @@ const SEQUENCE_SELECTOR = '[mc-chalk-sequence]';
 const CHALK_RENDER_MARGIN = '50% 0px';
 const CHALK_ENABLED_ATTRIBUTE = 'mc-chalk-enabled';
 const CHALK_BEND_ENABLED_ATTRIBUTE = 'mc-chalk-bend-enabled';
+const MOBILE_MEDIA_QUERY = '(max-width: 767px)';
 
 const DEFAULTS = {
   bend: 6,
@@ -32,6 +33,7 @@ const DEFAULTS = {
 };
 const logger = createLogger('melon', 'chalk');
 let sequenceEffectEnabled = true;
+let responsiveListenerRegistered = false;
 
 type ChalkStamp = {
   path: string;
@@ -107,6 +109,7 @@ type ChalkSequenceController = {
   show: () => void;
   hide: () => void;
   replay: () => void;
+  destroy: () => void;
 };
 
 type ChalkStats = {
@@ -183,6 +186,8 @@ const reduceMotionEnabled = () => {
 
   return reducedMotionQuery.matches;
 };
+
+const mobileViewport = () => window.matchMedia(MOBILE_MEDIA_QUERY).matches;
 
 const numberAttribute = (element: Element, name: string, fallback: number) => {
   const value = parseFloat(element.getAttribute(name) || '');
@@ -946,8 +951,10 @@ const initSequence = (sequenceElement: HTMLElement) => {
 
   let timeline: GSAPTimeline | null = null;
   let trigger: ScrollTrigger | null = null;
+  let mobileTimelines: GSAPTimeline[] = [];
+  let mobileTriggers: ScrollTrigger[] = [];
 
-  const build = () => {
+  const kill = () => {
     if (timeline) {
       timeline.kill();
       timeline = null;
@@ -957,6 +964,16 @@ const initSequence = (sequenceElement: HTMLElement) => {
       trigger.kill();
       trigger = null;
     }
+
+    mobileTimelines.forEach((mobileTimeline) => mobileTimeline.kill());
+    mobileTimelines = [];
+
+    mobileTriggers.forEach((mobileTrigger) => mobileTrigger.kill());
+    mobileTriggers = [];
+  };
+
+  const build = () => {
+    kill();
 
     if (!sequenceEffectEnabled || reduceMotionEnabled()) {
       instances.forEach(showInstance);
@@ -972,26 +989,51 @@ const initSequence = (sequenceElement: HTMLElement) => {
 
     instances.forEach(hideInstance);
 
-    timeline = gsap!.timeline({
-      paused: true,
-    });
+    if (mobileViewport()) {
+      instances.forEach((instance) => {
+        const mobileTimeline = gsap.timeline({
+          paused: true,
+        });
+        addInstanceToTimeline(mobileTimeline, instance, settings.duration, 0);
+        mobileTimeline.pause(0);
+        mobileTimelines.push(mobileTimeline);
 
-    instances.forEach((instance, index) => {
-      addInstanceToTimeline(timeline!, instance, settings.duration, index * settings.stagger);
-    });
+        const mobileTrigger = ScrollTrigger.create({
+          trigger: instance.wrapper,
+          start: settings.start,
+          markers: getScrollTriggerDebug(),
+          once: true,
+          onEnter: () => {
+            revealWrapper(instance);
+            mobileTimeline.pause(0);
+            hideInstance(instance);
+            mobileTimeline.restart();
+          },
+        });
+        mobileTriggers.push(mobileTrigger);
+      });
+    } else {
+      timeline = gsap.timeline({
+        paused: true,
+      });
 
-    trigger = ScrollTrigger!.create({
-      trigger: sequenceElement,
-      start: settings.start,
-      markers: getScrollTriggerDebug(),
-      once: true,
-      onEnter: () => {
-        revealWrappers(instances);
-        timeline?.pause(0);
-        instances.forEach(hideInstance);
-        timeline?.restart();
-      },
-    });
+      instances.forEach((instance, index) => {
+        addInstanceToTimeline(timeline!, instance, settings.duration, index * settings.stagger);
+      });
+
+      trigger = ScrollTrigger.create({
+        trigger: sequenceElement,
+        start: settings.start,
+        markers: getScrollTriggerDebug(),
+        once: true,
+        onEnter: () => {
+          revealWrappers(instances);
+          timeline?.pause(0);
+          instances.forEach(hideInstance);
+          timeline?.restart();
+        },
+      });
+    }
 
     sequenceElement.dataset.mcChalkSequenceReady = '1';
   };
@@ -1047,12 +1089,16 @@ const initSequence = (sequenceElement: HTMLElement) => {
         timeline.pause();
       }
 
+      mobileTimelines.forEach((mobileTimeline) => mobileTimeline.pause());
+
       instances.forEach(showInstance);
     },
     hide() {
       if (timeline) {
         timeline.pause(0);
       }
+
+      mobileTimelines.forEach((mobileTimeline) => mobileTimeline.pause(0));
 
       instances.forEach(hideInstance);
     },
@@ -1063,14 +1109,19 @@ const initSequence = (sequenceElement: HTMLElement) => {
         return;
       }
 
-      if (!timeline) {
+      if (!timeline && !mobileTimelines.length) {
         build();
       }
 
       revealWrappers(instances);
       instances.forEach(hideInstance);
-      timeline?.restart();
+      if (mobileViewport()) {
+        mobileTimelines.forEach((mobileTimeline) => mobileTimeline.restart());
+      } else {
+        timeline?.restart();
+      }
     },
+    destroy: kill,
   };
 
   build();
@@ -1088,6 +1139,7 @@ const initSequence = (sequenceElement: HTMLElement) => {
 };
 
 const initSequences = () => {
+  sequenceControllers.forEach((controller) => controller.destroy());
   sequenceControllers.length = 0;
 
   const sequences = [...document.querySelectorAll<HTMLElement>(SEQUENCE_SELECTOR)];
@@ -1126,6 +1178,22 @@ const initSequences = () => {
       sequenceControllers.forEach((controller) => controller.applyMotionPreference());
       requestScrollTriggerRefresh();
     });
+
+    const mobileMedia = window.matchMedia(MOBILE_MEDIA_QUERY);
+    const onViewportChange = () => {
+      sequenceControllers.forEach((controller) => controller.rebuild());
+      requestScrollTriggerRefresh();
+    };
+
+    if (!responsiveListenerRegistered) {
+      responsiveListenerRegistered = true;
+
+      if (typeof mobileMedia.addEventListener === 'function') {
+        mobileMedia.addEventListener('change', onViewportChange);
+      } else if (typeof mobileMedia.addListener === 'function') {
+        mobileMedia.addListener(onViewportChange);
+      }
+    }
   }
 };
 

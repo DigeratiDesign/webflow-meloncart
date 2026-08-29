@@ -11,9 +11,11 @@ import type { MCDebugSchema, MCNamespace } from '../../digerati/core/types';
 const DEFAULT_DURATION = 1;
 const DEFAULT_START = 'top 75%';
 const DEFAULT_STAGGER = 0.25;
+const MOBILE_MEDIA_QUERY = '(max-width: 767px)';
 const EASE = 'power3.out';
 const logger = createLogger('melon', 'illustration');
 let effectEnabled = true;
+let responsiveListenerRegistered = false;
 
 type SequenceSettings = {
   duration: number;
@@ -568,6 +570,8 @@ const reducedMotionEnabled = () => {
   return !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 };
 
+const mobileViewport = () => !!window.matchMedia?.(MOBILE_MEDIA_QUERY).matches;
+
 const showIllustrationFinal = (element: HTMLElement, duration: number) => {
   prepareIllustration(element);
 
@@ -596,6 +600,8 @@ const createSequenceController = (section: HTMLElement, sectionIndex: number) =>
 
   let master: GSAPTimeline | null = null;
   let trigger: ScrollTrigger | null = null;
+  let mobileTimelines: GSAPTimeline[] = [];
+  let mobileTriggers: ScrollTrigger[] = [];
 
   const kill = () => {
     if (master) {
@@ -607,6 +613,12 @@ const createSequenceController = (section: HTMLElement, sectionIndex: number) =>
       trigger.kill();
       trigger = null;
     }
+
+    mobileTimelines.forEach((timeline) => timeline.kill());
+    mobileTimelines = [];
+
+    mobileTriggers.forEach((mobileTrigger) => mobileTrigger.kill());
+    mobileTriggers = [];
   };
 
   const showFinal = () => {
@@ -626,39 +638,64 @@ const createSequenceController = (section: HTMLElement, sectionIndex: number) =>
 
     illustrations.forEach(prepareIllustration);
 
-    const masterTimeline = gsap.timeline({
-      paused: true,
-    });
-    master = masterTimeline;
+    if (mobileViewport()) {
+      illustrations.forEach((element, index) => {
+        const timeline = createIllustrationTimeline(element, settings.duration);
 
-    illustrations.forEach((element, index) => {
-      const timeline = createIllustrationTimeline(element, settings.duration);
+        if (!timeline) {
+          return;
+        }
 
-      if (!timeline) {
-        return;
-      }
+        timeline.pause(0);
+        mobileTimelines.push(timeline);
 
-      masterTimeline.add(timeline, index * settings.stagger);
-    });
+        const itemTrigger = ScrollTrigger.create({
+          id: `mc-illustration-sequence-${sectionIndex + 1}-item-${index + 1}`,
+          trigger: element,
+          start: settings.start,
+          markers: getScrollTriggerDebug(),
+          once: true,
+          onEnter: () => {
+            timeline.play(0);
+          },
+        });
+        mobileTriggers.push(itemTrigger);
+      });
+    } else {
+      const masterTimeline = gsap.timeline({
+        paused: true,
+      });
+      master = masterTimeline;
 
-    masterTimeline.pause(0);
+      illustrations.forEach((element, index) => {
+        const timeline = createIllustrationTimeline(element, settings.duration);
 
-    trigger = ScrollTrigger.create({
-      id: `mc-illustration-sequence-${sectionIndex + 1}`,
-      trigger: section,
-      start: settings.start,
-      markers: getScrollTriggerDebug(),
-      once: true,
-      onEnter: () => {
-        master?.play(0);
-      },
-    });
+        if (!timeline) {
+          return;
+        }
+
+        masterTimeline.add(timeline, index * settings.stagger);
+      });
+
+      masterTimeline.pause(0);
+
+      trigger = ScrollTrigger.create({
+        id: `mc-illustration-sequence-${sectionIndex + 1}`,
+        trigger: section,
+        start: settings.start,
+        markers: getScrollTriggerDebug(),
+        once: true,
+        onEnter: () => {
+          master?.play(0);
+        },
+      });
+    }
 
     section.dataset.mcIllustrationSequenceReady = '1';
   };
 
   const rebuild = () => {
-    if (reducedMotionEnabled()) {
+    if (!effectEnabled || reducedMotionEnabled()) {
       showFinal();
     } else {
       buildAnimated();
@@ -711,7 +748,7 @@ const createSequenceController = (section: HTMLElement, sectionIndex: number) =>
     rebuild,
     showFinal,
     replay() {
-      if (reducedMotionEnabled()) {
+      if (!effectEnabled || reducedMotionEnabled()) {
         showFinal();
         return;
       }
@@ -721,8 +758,16 @@ const createSequenceController = (section: HTMLElement, sectionIndex: number) =>
       }
 
       illustrations.forEach(prepareIllustration);
-      master?.pause(0);
-      master?.play(0);
+
+      if (mobileViewport()) {
+        mobileTimelines.forEach((timeline) => {
+          timeline.pause(0);
+          timeline.play(0);
+        });
+      } else {
+        master?.pause(0);
+        master?.play(0);
+      }
     },
     destroy: kill,
   };
@@ -838,6 +883,22 @@ export const initMCIllustration = () => {
       motionMedia.addEventListener('change', onSystemMotionChange);
     } else if (typeof motionMedia.addListener === 'function') {
       motionMedia.addListener(onSystemMotionChange);
+    }
+  }
+
+  const mobileMedia = window.matchMedia?.(MOBILE_MEDIA_QUERY);
+
+  if (mobileMedia && !responsiveListenerRegistered) {
+    responsiveListenerRegistered = true;
+
+    const onViewportChange = () => {
+      rebuildAllSequences();
+    };
+
+    if (typeof mobileMedia.addEventListener === 'function') {
+      mobileMedia.addEventListener('change', onViewportChange);
+    } else if (typeof mobileMedia.addListener === 'function') {
+      mobileMedia.addListener(onViewportChange);
     }
   }
 
