@@ -220,6 +220,8 @@ const setChalkEnabled = (enabled: boolean) => {
     applyChalkEnabled(instance, enabled);
     applyChalkBend(instance, instance.settings.bendEnabled);
   });
+  // A Chalk Sequence keeps ownership of its draw layer while it is enabled.
+  sequenceControllers.forEach((controller) => controller.rebuild());
   refreshChalkStats();
 };
 
@@ -849,6 +851,14 @@ const showInstance = (instance: ChalkInstance) => {
   instance.brushLayers.forEach(showBrushLayer);
 };
 
+/** An active sequence owns its draw layer, independently of the global appearance toggle. */
+const prepareSequenceInstance = (instance: ChalkInstance) => {
+  instance.treated.style.display = '';
+  instance.originals.forEach(({ element }) => {
+    element.style.display = 'none';
+  });
+};
+
 const revealWrapper = (instance: ChalkInstance | null | undefined) => {
   if (instance?.wrapper) {
     instance.wrapper.style.opacity = '1';
@@ -987,6 +997,7 @@ const initSequence = (sequenceElement: HTMLElement) => {
 
     delete sequenceElement.dataset.mcChalkReducedMotion;
 
+    instances.forEach(prepareSequenceInstance);
     instances.forEach(hideInstance);
 
     if (mobileViewport()) {
