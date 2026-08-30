@@ -10,6 +10,7 @@ const DEFAULT_DEPTH = 0.5;
 const DEFAULT_DURATION = 0.8;
 const DEFAULT_INTRO_SCALE = 2.2;
 const DEFAULT_INTRO_DURATION = 1.2;
+const INTRO_CONTENT_ATTRIBUTE = 'data-mc-parallax-intro-content';
 const logger = createLogger('melon', 'parallax', { debug: isMCDebugEnabled });
 let effectEnabled = true;
 
@@ -66,6 +67,7 @@ class MCParallaxScene {
   introDuration: number;
   introTween: gsap.core.Tween | null = null;
   originalInlineOverflow: string;
+  contentElement: HTMLElement;
 
   private readonly handlePointerMove = (event: PointerEvent) => {
     const rect = this.element.getBoundingClientRect();
@@ -104,6 +106,7 @@ class MCParallaxScene {
       0.1,
       numberAttribute(element, 'mc-parallax-intro-duration', DEFAULT_INTRO_DURATION)
     );
+    this.contentElement = this.ensureContentElement();
     this.hydrateLayers();
   }
 
@@ -142,6 +145,29 @@ class MCParallaxScene {
     }));
   }
 
+  private ensureContentElement() {
+    const existing = this.element.querySelector<HTMLElement>(
+      `:scope > [${INTRO_CONTENT_ATTRIBUTE}]`
+    );
+
+    if (existing) {
+      return existing;
+    }
+
+    const content = document.createElement('div');
+    content.setAttribute(INTRO_CONTENT_ATTRIBUTE, 'true');
+    content.style.width = '100%';
+    content.style.height = '100%';
+
+    while (this.element.firstChild) {
+      content.append(this.element.firstChild);
+    }
+
+    this.element.append(content);
+
+    return content;
+  }
+
   private setStaticLayers() {
     this.layers.forEach((layer) => {
       gsap.set(layer.element, { x: 0, y: 0, scale: 1 });
@@ -164,18 +190,15 @@ class MCParallaxScene {
       return;
     }
 
-    this.introTween = gsap.to(
-      this.layers.map(({ element }) => element),
-      {
-        scale: 1,
-        duration: this.introDuration,
-        ease: 'power3.out',
-        onComplete: () => {
-          this.introTween = null;
-          this.startPointerTracking();
-        },
-      }
-    );
+    this.introTween = gsap.to(this.contentElement, {
+      scale: 1,
+      duration: this.introDuration,
+      ease: 'power3.out',
+      onComplete: () => {
+        this.introTween = null;
+        this.startPointerTracking();
+      },
+    });
   }
 
   destroy() {
@@ -184,6 +207,8 @@ class MCParallaxScene {
     this.introTween?.kill();
     this.introTween = null;
     this.element.style.overflow = this.originalInlineOverflow;
+    gsap.killTweensOf(this.contentElement);
+    gsap.set(this.contentElement, { scale: 1, transformOrigin: '50% 50%' });
 
     this.layers.forEach((layer) => {
       gsap.killTweensOf(layer.element);
@@ -270,16 +295,9 @@ class MCParallaxScene {
     }
 
     this.element.style.overflow = 'hidden';
-    this.layers.forEach((layer) => {
-      const sceneRect = this.element.getBoundingClientRect();
-      const layerRect = layer.element.getBoundingClientRect();
-      const originX = sceneRect.left + sceneRect.width / 2 - layerRect.left;
-      const originY = sceneRect.top + sceneRect.height / 2 - layerRect.top;
-
-      gsap.set(layer.element, {
-        scale: this.introScale,
-        transformOrigin: `${originX}px ${originY}px`,
-      });
+    gsap.set(this.contentElement, {
+      scale: this.introScale,
+      transformOrigin: '50% 50%',
     });
   }
 
