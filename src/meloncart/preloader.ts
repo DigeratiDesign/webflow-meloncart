@@ -69,6 +69,14 @@ class MCPreloader implements MCPreloaderAPI {
   }
 
   heroReady(play?: () => void) {
+    // eslint-disable-next-line no-console -- temporary cross-browser startup diagnostic.
+    console.info('[🍈:preloader]', {
+      time: performance.now(),
+      signal: 'window.MC.preloader.heroReady(playSequence)',
+      message: 'Received hero readiness signal',
+      hasPlayback: Boolean(play),
+    });
+
     if (play) {
       this.heroPlayback = play;
     }
@@ -125,6 +133,14 @@ class MCPreloader implements MCPreloaderAPI {
   private completeDismissal(reason: string) {
     if (this.dismissed) return;
 
+    // eslint-disable-next-line no-console -- temporary cross-browser startup diagnostic.
+    console.info('[🍈:preloader]', {
+      time: performance.now(),
+      signal: 'MCPreloader.completeDismissal()',
+      message: 'Preloader hide triggered',
+      reason,
+    });
+
     this.dismissed = true;
     this.dismissing = false;
     this.clearTimers();
@@ -154,6 +170,15 @@ class MCPreloader implements MCPreloaderAPI {
 
     this.dismissing = true;
     this.dismissalReason = reason;
+
+    // eslint-disable-next-line no-console -- temporary cross-browser startup diagnostic.
+    console.info('[🍈:preloader]', {
+      time: performance.now(),
+      signal: 'MCPreloader.dismiss()',
+      message: 'Preloader exit requested',
+      reason,
+      force,
+    });
 
     if (force) {
       logger.warn('Fallback forcing exit before presentation readiness', { reason });
@@ -192,6 +217,12 @@ export const initMCPreloader = () => {
   }
 
   const preloader = new MCPreloader(element);
+  // eslint-disable-next-line no-console -- temporary cross-browser startup diagnostic.
+  console.info('[🍈:preloader]', {
+    time: performance.now(),
+    signal: 'window.MC.preloader.heroReady(playSequence)',
+    message: 'Registered hero readiness signal receiver',
+  });
   ensureMC().preloader = preloader;
   preloader.init();
 };

@@ -721,6 +721,14 @@ class MCHeroSequence implements MCController {
     }
     timeline.totalTime(0, true);
 
+    // eslint-disable-next-line no-console -- temporary cross-browser startup diagnostic.
+    console.info('[🍈:hero-sequence]', {
+      time: performance.now(),
+      signal: 'window.MC.preloader.heroReady(playSequence)',
+      message: 'Initial GSAP animation state prepared',
+      sequence: this.index + 1,
+    });
+
     this.initialising = false;
     requestScrollTriggerRefresh();
     window.MC?.debug?.refresh();
@@ -743,6 +751,13 @@ class MCHeroSequence implements MCController {
       const { preloader } = ensureMC();
 
       if (preloader?.active) {
+        // eslint-disable-next-line no-console -- temporary cross-browser startup diagnostic.
+        console.info('[🍈:hero-sequence]', {
+          time: performance.now(),
+          signal: 'window.MC.preloader.heroReady(playSequence)',
+          message: 'Sending hero readiness signal',
+          sequence: this.index + 1,
+        });
         preloader.heroReady(playSequence);
         logger.debug('Sequence playback waiting for preloader dismissal', {
           sequence: this.index + 1,
