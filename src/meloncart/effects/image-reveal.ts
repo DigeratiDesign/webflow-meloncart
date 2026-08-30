@@ -5,7 +5,7 @@ const IMAGE_SELECTOR =
   'img[loading="lazy"]:not([mc-image-reveal="off"]):not([mc-reward="shape"]), img[mc-image-reveal]:not([mc-image-reveal="off"]):not([mc-reward="shape"])';
 // The preloader owns its background and must not be reset by generic Image Reveal.
 const BACKGROUND_SELECTOR =
-  '[mc-image-reveal]:not(img):not([mc-image-reveal="off"]):not([mc-preloader])';
+  '[mc-image-reveal]:not(img):not([mc-image-reveal="off"]):not([dd-preloader])';
 const REVEAL_DURATION = 600;
 const logger = createLogger('melon', 'image-reveal', { debug: isMCDebugEnabled });
 let effectEnabled = true;

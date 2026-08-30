@@ -2,7 +2,7 @@ import { gsap } from '../digerati/core/gsap';
 import { createLogger, isMCDebugEnabled } from '../digerati/core/logger';
 import type { MCNamespace } from '../digerati/core/types';
 
-const SELECTOR = '[mc-preloader]';
+const SELECTOR = '[dd-preloader]';
 const HERO_SELECTOR = '[mc-hero-sequence]';
 const ROOT_ATTRIBUTE = 'data-mc-preloader-active';
 const DISMISSED_ROOT_ATTRIBUTE = 'data-mc-preloader-dismissed';
