@@ -228,6 +228,7 @@ const setChalkEnabled = (enabled: boolean) => {
 const setChalkBendEnabled = (enabled: boolean) => {
   document.body.setAttribute(CHALK_BEND_ENABLED_ATTRIBUTE, String(enabled));
   chalkInstances.forEach((instance) => applyChalkBend(instance, enabled));
+  sequenceControllers.forEach((controller) => controller.rebuild());
   refreshChalkStats();
 };
 
@@ -854,6 +855,14 @@ const showInstance = (instance: ChalkInstance) => {
 /** An active sequence owns its draw layer, independently of the global appearance toggle. */
 const prepareSequenceInstance = (instance: ChalkInstance) => {
   instance.treated.style.display = '';
+  const bendActive = instance.settings.bendEnabled && instance.settings.bend > 0.001;
+
+  if (bendActive) {
+    instance.treated.setAttribute('filter', `url(#${instance.bendId})`);
+  } else {
+    instance.treated.removeAttribute('filter');
+  }
+
   instance.originals.forEach(({ element }) => {
     element.style.display = 'none';
   });
@@ -1285,6 +1294,10 @@ export const initMCChalk = () => {
           }
 
           (ensureMC().chalk || []).forEach((instance) => instance.set?.(key, value));
+
+          if (key === 'bend') {
+            sequenceControllers.forEach((controller) => controller.rebuild());
+          }
         },
       };
 
