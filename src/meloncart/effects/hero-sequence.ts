@@ -438,12 +438,15 @@ class MCHeroSequence implements MCController {
       .querySelectorAll<HTMLElement>('[mc-animation-owner="hero-sequence"]')
       .forEach((child) => child.removeAttribute('mc-animation-owner'));
 
-    void (this.child<HTMLImageElement>('img[mc-depth-reveal]') as MCDepthElement | null)
-      ?.__mcDepthReveal?.init();
-    void (this.child<HTMLElement>('[mc-colour-reveal]') as MCColourRevealElement | null)
-      ?.__mcColourReveal?.init();
-    (this.child<HTMLElement>('[mc-parallax="scene"]') as MCParallaxElement | null)
-      ?.__mcParallax?.init();
+    void (
+      this.child<HTMLImageElement>('img[mc-depth-reveal]') as MCDepthElement | null
+    )?.__mcDepthReveal?.init();
+    void (
+      this.child<HTMLElement>('[mc-colour-reveal]') as MCColourRevealElement | null
+    )?.__mcColourReveal?.init();
+    (
+      this.child<HTMLElement>('[mc-parallax="scene"]') as MCParallaxElement | null
+    )?.__mcParallax?.init();
   }
 
   async rebuild(playImmediately = false) {
@@ -615,6 +618,7 @@ class MCHeroSequence implements MCController {
       try {
         this.bodySplit = SplitText.create(body, {
           type: 'lines',
+          reduceWhiteSpace: false,
           mask: 'lines',
           autoSplit: true,
           onSplit: (split) => {

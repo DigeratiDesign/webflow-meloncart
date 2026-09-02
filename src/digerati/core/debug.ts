@@ -994,7 +994,7 @@ export const initMCDebug = () => {
           { value: 'full', label: 'Off' },
         ],
         motion.mode,
-        (mode, button, control) => {
+        (mode) => {
           motion.setMode(mode);
           persistSettings();
           render();

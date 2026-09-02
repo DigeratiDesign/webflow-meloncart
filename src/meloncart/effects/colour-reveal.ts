@@ -290,6 +290,7 @@ class MCColourReveal {
     await new Promise<void>((resolve) => {
       this.split = SplitText.create(this.component, {
         type: 'lines',
+        reduceWhiteSpace: false,
         autoSplit: true,
         mask: 'lines',
         linesClass: 'line',
