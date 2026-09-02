@@ -618,6 +618,7 @@ class MCHeroSequence implements MCController {
       try {
         this.bodySplit = SplitText.create(body, {
           type: 'lines',
+          aria: 'none',
           reduceWhiteSpace: false,
           mask: 'lines',
           autoSplit: true,
